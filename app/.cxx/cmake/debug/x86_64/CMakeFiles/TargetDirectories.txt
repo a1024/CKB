@@ -1,0 +1,3 @@
+D:/Android/CKBdemo/app/.cxx/cmake/debug/x86_64/CMakeFiles/ckb.dir
+D:/Android/CKBdemo/app/.cxx/cmake/debug/x86_64/CMakeFiles/edit_cache.dir
+D:/Android/CKBdemo/app/.cxx/cmake/debug/x86_64/CMakeFiles/rebuild_cache.dir

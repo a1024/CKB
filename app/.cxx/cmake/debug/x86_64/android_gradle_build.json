@@ -1,0 +1,43 @@
+{
+  "stringTable": {
+    "0": "D:/Android/CKBdemo/app/.cxx/cmake/debug/x86_64",
+    "1": "--target=x86_64-none-linux-android21 --gcc-toolchain=D:/Programs/AndroidSDK/ndk/21.3.6528147/toolchains/llvm/prebuilt/windows-x86_64 --sysroot=D:/Programs/AndroidSDK/ndk/21.3.6528147/toolchains/llvm/prebuilt/windows-x86_64/sysroot -Dckb_EXPORTS -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security -std=c++11 -O0 -fno-limit-debug-info -fPIC"
+  },
+  "buildFiles": [
+    "D:\\Android\\CKBdemo\\app\\src\\main\\cpp\\CMakeLists.txt",
+    "D:\\Programs\\AndroidSDK\\ndk\\21.3.6528147\\build\\cmake\\android.toolchain.cmake",
+    "D:\\Programs\\AndroidSDK\\ndk\\21.3.6528147\\build\\cmake\\platforms.cmake"
+  ],
+  "cleanCommands": [
+    "D:\\Programs\\AndroidSDK\\cmake\\3.10.2.4988404\\bin\\ninja.exe -C \"D:\\Android\\CKBdemo\\app\\.cxx\\cmake\\debug\\x86_64\" clean"
+  ],
+  "buildTargetsCommand": "D:\\Programs\\AndroidSDK\\cmake\\3.10.2.4988404\\bin\\ninja.exe  -C \"D:\\Android\\CKBdemo\\app\\.cxx\\cmake\\debug\\x86_64\" {LIST_OF_TARGETS_TO_BUILD}",
+  "libraries": {
+    "ckb-Debug-x86_64": {
+      "buildCommand": "D:\\Programs\\AndroidSDK\\cmake\\3.10.2.4988404\\bin\\ninja.exe -C \"D:\\Android\\CKBdemo\\app\\.cxx\\cmake\\debug\\x86_64\" ckb",
+      "buildType": "debug",
+      "toolchain": "712543779",
+      "abi": "x86_64",
+      "artifactName": "ckb",
+      "files": [
+        {
+          "src": "D:\\Android\\CKBdemo\\app\\src\\main\\cpp\\ckb.cpp",
+          "flagsOrdinal": 1,
+          "workingDirectoryOrdinal": 0
+        }
+      ],
+      "headers": [],
+      "output": "D:\\Android\\CKBdemo\\app\\build\\intermediates\\cmake\\debug\\obj\\x86_64\\libckb.so",
+      "runtimeFiles": []
+    }
+  },
+  "toolchains": {
+    "712543779": {
+      "cppCompilerExecutable": "D:\\Programs\\AndroidSDK\\ndk\\21.3.6528147\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\clang++.exe"
+    }
+  },
+  "cFileExtensions": [],
+  "cppFileExtensions": [
+    "cpp"
+  ]
+}

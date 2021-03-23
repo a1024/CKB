@@ -1,0 +1,7 @@
+# ninja log v5
+0	267	637207974	CMakeFiles/ckb.dir/ckb.cpp.o	30e30130527ca8cb
+267	364	637207974	D:/Android/CKBdemo/app/build/intermediates/cmake/debug/obj/arm64-v8a/libckb.so	9300ccbcb48a91b0
+2	1427	637278500	CMakeFiles/ckb.dir/ckb.cpp.o	30e30130527ca8cb
+1427	1608	637278500	D:/Android/CKBdemo/app/build/intermediates/cmake/debug/obj/arm64-v8a/libckb.so	9300ccbcb48a91b0
+2	184	637295319	CMakeFiles/ckb.dir/ckb.cpp.o	30e30130527ca8cb
+184	228	637295319	D:/Android/CKBdemo/app/build/intermediates/cmake/debug/obj/arm64-v8a/libckb.so	9300ccbcb48a91b0

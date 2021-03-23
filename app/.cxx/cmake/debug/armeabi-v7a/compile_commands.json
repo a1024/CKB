@@ -1,0 +1,7 @@
+[
+{
+  "directory": "D:/Android/CKBdemo/app/.cxx/cmake/debug/armeabi-v7a",
+  "command": "D:\\Programs\\AndroidSDK\\ndk\\21.3.6528147\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\clang++.exe --target=armv7-none-linux-androideabi16 --gcc-toolchain=D:/Programs/AndroidSDK/ndk/21.3.6528147/toolchains/llvm/prebuilt/windows-x86_64 --sysroot=D:/Programs/AndroidSDK/ndk/21.3.6528147/toolchains/llvm/prebuilt/windows-x86_64/sysroot  -Dckb_EXPORTS  -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -march=armv7-a -mthumb -Wformat -Werror=format-security   -std=c++11 -O0 -fno-limit-debug-info  -fPIC   -o CMakeFiles\\ckb.dir\\ckb.cpp.o -c D:\\Android\\CKBdemo\\app\\src\\main\\cpp\\ckb.cpp",
+  "file": "D:\\Android\\CKBdemo\\app\\src\\main\\cpp\\ckb.cpp"
+}
+]

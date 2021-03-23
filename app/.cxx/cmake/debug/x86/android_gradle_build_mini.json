@@ -1,0 +1,20 @@
+{
+  "buildFiles": [
+    "D:\\Android\\CKBdemo\\app\\src\\main\\cpp\\CMakeLists.txt",
+    "D:\\Programs\\AndroidSDK\\ndk\\21.3.6528147\\build\\cmake\\android.toolchain.cmake",
+    "D:\\Programs\\AndroidSDK\\ndk\\21.3.6528147\\build\\cmake\\platforms.cmake"
+  ],
+  "cleanCommands": [
+    "D:\\Programs\\AndroidSDK\\cmake\\3.10.2.4988404\\bin\\ninja.exe -C \"D:\\Android\\CKBdemo\\app\\.cxx\\cmake\\debug\\x86\" clean"
+  ],
+  "buildTargetsCommand": "D:\\Programs\\AndroidSDK\\cmake\\3.10.2.4988404\\bin\\ninja.exe  -C \"D:\\Android\\CKBdemo\\app\\.cxx\\cmake\\debug\\x86\" {LIST_OF_TARGETS_TO_BUILD}",
+  "libraries": {
+    "ckb-Debug-x86": {
+      "artifactName": "ckb",
+      "buildCommand": "D:\\Programs\\AndroidSDK\\cmake\\3.10.2.4988404\\bin\\ninja.exe -C \"D:\\Android\\CKBdemo\\app\\.cxx\\cmake\\debug\\x86\" ckb",
+      "abi": "x86",
+      "output": "D:\\Android\\CKBdemo\\app\\build\\intermediates\\cmake\\debug\\obj\\x86\\libckb.so",
+      "runtimeFiles": []
+    }
+  }
+}
