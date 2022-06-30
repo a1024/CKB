@@ -40,13 +40,103 @@ public class CKBSettings extends ViewGroup
 {
 	public static final String TAG="CKBview2";
 
-	enum ViewId
+	enum ViewId//child views
 	{
 		ZERO_PLACEHOLDER,
 		ROOT,
 		MULTILINE, URL, NUMERIC, DECIMAL, PASSWORD,
 		COLOR_PICKER
 	}
+	public enum MenuIdx//index of menus in 'menus' array
+	{
+		L0_ROOT,
+
+		L1_UNICODE, L1_THEME, L1_KB_TEST, L1_P_NUMPAD, L1_L_NUMPAD, L1_P_PASSWORD, L1_L_PASSWORD,
+
+		L2_COLOR_BK, L2_COLOR_BUTTON, L2_COLOR_BUTTON_FAST, L2_ST2_COLOR_BUTTON_PRESSED, L2_COLOR_LABELS, L2_COLOR_SHADOW, L2_COLOR_SHADOW_LETTERS, L2_COLOR_SHADOW_SPECIAL, L2_COLOR_PREVIEW_TEXT,
+		L2_PT_HEIGHT, L2_PT_NEW_LAYOUT, L2_FPT_STD, L2_FPT_STD_SHIFT, L2_FPT_URL_STD, L2_FPT_URL_STD_SHIFT, L2_FPT_SYM, L2_FPT_SPK, L2_FPT_SPK_SHIFT, L2_FPT_FUN,
+		L2_LT_HEIGHT, L2_LT_NEW_LAYOUT, L2_FLT_STD, L2_FLT_STD_SHIFT, L2_FLT_SYM, L2_FLT_FUN,
+		L2_PN_HEIGHT, L2_PN_NEW_LAYOUT, L2_FPN_NUM,
+		L2_LN_HEIGHT, L2_LN_NEW_LAYOUT, L2_FLN_NUM,
+		L2_PP_HEIGHT, L2_PP_NEW_LAYOUT, L2_FPP_PASSWORD, L2_FPP_PASSWORD_SHIFT,
+		L2_LP_HEIGHT, L2_LP_NEW_LAYOUT, L2_FLP_PASSWORD, L2_FLP_PASSWORD_SHIFT,
+	}
+	public static abstract class MenuInterface
+	{
+		//abstract public void init();
+		abstract public void draw(Canvas canvas);
+		abstract public void touch(TouchInfo ti);
+	}
+	ArrayList<MenuInterface> menus=new ArrayList<>();
+	public static class MenuGeneric extends MenuInterface
+	{
+		//@Override public void init(){}//menus don't include child views
+		@Override public void draw(Canvas canvas)
+		{
+		}
+		@Override public void touch(TouchInfo ti)
+		{
+		}
+	}
+	public static class EditText2 extends androidx.appcompat.widget.AppCompatEditText
+	{
+		CKBSettings parent;
+		int viewId;
+		public EditText2(Context context){super(context);}
+		public EditText2(Context context, AttributeSet attrs){super(context, attrs);}
+		public EditText2(Context context, AttributeSet attrs, int defStyle){super(context, attrs, defStyle);}
+
+		public EditText2(Context context, CKBSettings _parent, int _viewId)
+		{
+			super(context);
+			parent=_parent; viewId=_viewId;
+			setId(viewId);
+		}
+		@Override public boolean onTouchEvent(MotionEvent e)
+		{
+			if(parent.touch(e, viewId))
+				return true;
+			return super.onTouchEvent(e);
+		}
+	}
+	public static class MenuTest extends MenuInterface
+	{
+		public static final int
+			ET_MULTILINE=0, ET_URL=1, ET_NUMERIC=2, ET_DECIMAL=3, ET_PASSWORD=4, ET_COUNT=5;
+		EditText2[] et=new EditText2[ET_COUNT];
+		int color_theme;
+		float textSize;
+		public MenuTest(Context context, CKBSettings _parent, int rootViewId)
+		{
+			for(int k=0;k<ET_COUNT;++k)
+				et[k]=new EditText2(context, _parent, rootViewId+1+k);
+			et[ET_MULTILINE	].setInputType(InputType.TYPE_CLASS_TEXT);
+			et[ET_MULTILINE	].setSingleLine(false);
+			et[ET_MULTILINE	].setImeOptions(EditorInfo.IME_FLAG_NO_ENTER_ACTION);
+			et[ET_URL		].setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_URI);
+			et[ET_NUMERIC	].setInputType(InputType.TYPE_CLASS_NUMBER);
+			et[ET_DECIMAL	].setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_SIGNED|InputType.TYPE_NUMBER_FLAG_DECIMAL);
+			et[ET_PASSWORD	].setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);
+			for(int k=0;k<ET_COUNT;++k)
+				_parent.addView(et[k]);
+		}
+		public void init(int _color_theme, float _TextSize)
+		{
+			color_theme=_color_theme;
+			textSize=_TextSize;
+			for(int k=0;k<ET_COUNT;++k)
+				setTheme(et[k],	color_theme, textSize);
+		}
+		@Override public void draw(Canvas canvas)
+		{
+		}
+		@Override public void touch(TouchInfo ti)
+		{
+		}
+	}
+
+
+
 	public static final int//not counting the back button
 		//root
 		ST1_UNICODE=0, ST1_THEME=1, ST1_KB_TEST=2,
@@ -162,27 +252,6 @@ public class CKBSettings extends ViewGroup
 		"layout_l_password",
 		"layout_l_password_shift",
 	};
-	public static class EditText2 extends androidx.appcompat.widget.AppCompatEditText
-	{
-		CKBSettings parent;
-		int viewId;
-		public EditText2(Context context){super(context);}
-		public EditText2(Context context, AttributeSet attrs){super(context, attrs);}
-		public EditText2(Context context, AttributeSet attrs, int defStyle){super(context, attrs, defStyle);}
-
-		public EditText2(Context context, CKBSettings _parent, int _viewId)
-		{
-			super(context);
-			parent=_parent; viewId=_viewId;
-			setId(viewId);
-		}
-		@Override public boolean onTouchEvent(MotionEvent e)
-		{
-			if(parent.touch(e, viewId))
-				return true;
-			return super.onTouchEvent(e);
-		}
-	}
 
 	int w, h,//screen dimensions
 		px, py, dx, dy;//view position & dimensions
@@ -225,36 +294,7 @@ public class CKBSettings extends ViewGroup
 	public CKBSettings(Context context, AttributeSet attrs){super(context, attrs); init(context);}
 	public CKBSettings(Context context, AttributeSet attrs, int defStyle){super(context, attrs, defStyle); init(context);}
 
-/*	public static void setCursorColor(EditText view, int color)//https://stackoverflow.com/questions/25996032/how-to-change-programmatically-edittext-cursor-color-in-android
-	{
-		try//doesn't work on android P+
-		{
-			//Get the cursor resource id
-			Field field=TextView.class.getDeclaredField("mCursorDrawableRes");
-			field.setAccessible(true);
-			int drawableResId=field.getInt(view);
-
-			//Get the editor
-			field=TextView.class.getDeclaredField("mEditor");
-			field.setAccessible(true);
-			Object editor=field.get(view);
-
-			//Get the drawable and set a color filter
-			Drawable drawable=ContextCompat.getDrawable(view.getContext(), drawableResId);
-			drawable.setColorFilter(color, PorterDuff.Mode.SRC_IN);
-			Drawable[] drawables={drawable, drawable};
-
-			//Set the drawables
-			field=editor.getClass().getDeclaredField("mCursorDrawable");
-			field.setAccessible(true);
-			field.set(editor, drawables);
-		}
-		catch(Exception e)
-		{
-			Log.e(TAG, "exception", e);
-		}
-	}//*/
-	void setTheme(EditText et, int color_theme)
+	static void setTheme(EditText et, int color_theme, float textSize)
 	{
 		et.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize);
 		et.setTextColor(0xFF000000);
@@ -278,11 +318,11 @@ public class CKBSettings extends ViewGroup
 		//test
 		int color_theme=0xFF03DAC5;//colors.xml/teal_200
 		//int color_theme=0xFF0000FF;
-		setTheme(multiline,	color_theme);
-		setTheme(url,		color_theme);
-		setTheme(numeric,	color_theme);
-		setTheme(decimal,	color_theme);
-		setTheme(password,	color_theme);
+		setTheme(multiline,	color_theme, textSize);
+		setTheme(url,		color_theme, textSize);
+		setTheme(numeric,	color_theme, textSize);
+		setTheme(decimal,	color_theme, textSize);
+		setTheme(password,	color_theme, textSize);
 		//end test
 
 		//scroll parameters

@@ -97,10 +97,10 @@ public class CKBview2 extends ViewGroup//need to clear setWillNotDraw() to draw
 		numeric_decimal=false;//extra buttons: . /
 
 	public static final int
-		SK_NAB=-39,//starting from -SK_START_OFFSET
+		SK_NAB=-40,//starting from -SK_START_OFFSET
 
 		//CKB-specific
-		SK_STD=-38, SK_SYM=-37, SK_SPK=-36, SK_FUN=-35, SK_TRANSPARENT=-34,
+		SK_STD=-39, SK_SYM=-38, SK_ALL=-37, SK_SPK=-36, SK_FUN=-35, SK_TRANSPARENT=-34,
 		SK_SETTINGS=-33, SK_UNICODE=-32,
 
 		//PC keyLabels
@@ -136,6 +136,7 @@ public class CKBview2 extends ViewGroup//need to clear setWillNotDraw() to draw
 		new KeyLabel(""			, SK_NAB		),
 		new KeyLabel("std"		, SK_STD		),
 		new KeyLabel("sym"		, SK_SYM		),
+		new KeyLabel("all"		, SK_ALL		),
 		new KeyLabel("spk"		, SK_SPK		),
 		new KeyLabel("fun"		, SK_FUN		),
 		new KeyLabel("Transp"	, SK_TRANSPARENT),
@@ -248,7 +249,7 @@ public class CKBview2 extends ViewGroup//need to clear setWillNotDraw() to draw
 		{'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'},
 		{SK_NAB, 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', SK_NAB},
 		{SK_SHIFT, 'Z', 'X', 'C', 'V', 'B', 'N', 'M', SK_BACKSPACE},
-		{SK_SYM, SK_SPK, SK_SPACE, ',', SK_ENTER}
+		{SK_ALL, SK_SPK, SK_SPACE, ',', SK_ENTER}
 	};
 	public static float[][] layout_p_std_widths=
 	{
@@ -272,7 +273,7 @@ public class CKBview2 extends ViewGroup//need to clear setWillNotDraw() to draw
 		{'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'},
 		{SK_NAB, 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', SK_NAB},
 		{SK_SHIFT, 'Z', 'X', 'C', 'V', 'B', 'N', 'M', SK_BACKSPACE},
-		{SK_SYM, SK_SPK, '/', SK_SPACE, '@', ',', SK_ENTER}
+		{SK_ALL, SK_SPK, '/', SK_SPACE, '@', ',', SK_ENTER}
 	};
 	public static float[][] layout_p_url_std_widths=
 	{
@@ -456,7 +457,7 @@ public class CKBview2 extends ViewGroup//need to clear setWillNotDraw() to draw
 		{'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'},
 		{SK_NAB, 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', SK_NAB},
 		{SK_SHIFT, 'z', 'x', 'c', 'v', 'b', 'n', 'm', SK_BACKSPACE},
-		{SK_SETTINGS, ',', SK_SPACE, '.', SK_ENTER},
+		{SK_STD, ',', SK_SPACE, '.', SK_ENTER},
 	};
 	public static int[][] layout_p_password_shift=
 	{
@@ -629,13 +630,15 @@ public class CKBview2 extends ViewGroup//need to clear setWillNotDraw() to draw
 	public static final int//keyboard: portrait-text
 		KPT_STD=0, KPT_STD_SHIFT=1,
 		KPT_SYM=2,
-		KPT_SPK=3, KPT_SPK_SHIFT=4,
-		KPT_FUN=5;
+		KPT_ALL=3, KPT_ALL_SHIFT=4,
+		KPT_SPK=5, KPT_SPK_SHIFT=6,
+		KPT_FUN=7;
 	public class PortraitTextKeyboard extends Keyboard
 	{
 		PortraitTextKeyboard()
 		{
-			kb_h=(int)(h*0.32f);
+			kb_h=(int)(h*0.4f);
+		//	kb_h=(int)(h*0.32f);
 			idx=0;
 			layouts=new ArrayList<>(6);
 			if(mode==MODE_URL||mode==MODE_EMAIL)
@@ -651,6 +654,9 @@ public class CKBview2 extends ViewGroup//need to clear setWillNotDraw() to draw
 
 			layouts.add(new Layout("p_sym",			layout_p_sym,		layout_p_sym_widths));
 
+			layouts.add(new Layout("p_all",			layout_p_password,			layout_p_password_widths));
+			layouts.add(new Layout("p_all_shift",	layout_p_password_shift,	layout_p_password_widths));
+
 			layouts.add(new Layout("p_spk",			layout_p_spk,		layout_p_spk_widths));
 			layouts.add(new Layout("p_spk_shift",	layout_p_spk_shift,	layout_p_spk_widths));
 
@@ -663,6 +669,9 @@ public class CKBview2 extends ViewGroup//need to clear setWillNotDraw() to draw
 			{
 			case KPT_STD:		idx=KPT_STD_SHIFT;	break;
 			case KPT_STD_SHIFT:	idx=KPT_STD;		break;
+
+			case KPT_ALL:		idx=KPT_ALL_SHIFT;	break;
+			case KPT_ALL_SHIFT:	idx=KPT_ALL;		break;
 
 			case KPT_SPK:		idx=KPT_SPK_SHIFT;	break;
 			case KPT_SPK_SHIFT:	idx=KPT_SPK;		break;
@@ -678,6 +687,9 @@ public class CKBview2 extends ViewGroup//need to clear setWillNotDraw() to draw
 			case KPT_STD:
 			case KPT_STD_SHIFT:	idx=KPT_STD_SHIFT;	break;
 
+			case KPT_ALL:
+			case KPT_ALL_SHIFT:	idx=KPT_ALL_SHIFT;	break;
+
 			case KPT_SPK:
 			case KPT_SPK_SHIFT:	idx=KPT_SPK_SHIFT;	break;
 
@@ -692,6 +704,9 @@ public class CKBview2 extends ViewGroup//need to clear setWillNotDraw() to draw
 			case KPT_STD:
 			case KPT_STD_SHIFT:	idx=KPT_STD;	break;
 
+			case KPT_ALL:
+			case KPT_ALL_SHIFT:	idx=KPT_ALL;	break;
+
 			case KPT_SPK:
 			case KPT_SPK_SHIFT:	idx=KPT_SPK;	break;
 
@@ -705,6 +720,7 @@ public class CKBview2 extends ViewGroup//need to clear setWillNotDraw() to draw
 			{
 			case SK_STD:	idx=isActive_shift?KPT_STD_SHIFT:KPT_STD;	break;
 			case SK_SYM:	idx=KPT_SYM;								break;
+			case SK_ALL:	idx=isActive_shift?KPT_ALL_SHIFT:KPT_ALL;	break;
 			case SK_SPK:	idx=isActive_shift?KPT_SPK_SHIFT:KPT_SPK;	break;
 			case SK_FUN:	idx=KPT_FUN;								break;
 			}
@@ -718,6 +734,9 @@ public class CKBview2 extends ViewGroup//need to clear setWillNotDraw() to draw
 			case KPT_STD:
 			case KPT_STD_SHIFT:	idx=isActive_shift?KPT_STD_SHIFT:KPT_STD;	break;
 
+			case KPT_ALL:
+			case KPT_ALL_SHIFT:	idx=isActive_shift?KPT_ALL_SHIFT:KPT_ALL;	break;
+
 			case KPT_SPK:
 			case KPT_SPK_SHIFT:	idx=isActive_shift?KPT_SPK_SHIFT:KPT_SPK;	break;
 			}
@@ -725,6 +744,7 @@ public class CKBview2 extends ViewGroup//need to clear setWillNotDraw() to draw
 	}
 	public static final int//keyboard: portrait-text
 		KLT_STD=0, KLT_STD_SHIFT=1,
+		KLT_ALL=0, KLT_ALL_SHIFT=1,
 		KLT_SYM=2,
 		KLT_FUN=3;
 	public class LandscapeTextKeyboard extends Keyboard
@@ -744,6 +764,9 @@ public class CKBview2 extends ViewGroup//need to clear setWillNotDraw() to draw
 				layouts.add(new Layout("l_std",			layout_l_std,		layout_l_std_widths));
 				layouts.add(new Layout("l_std_shift",	layout_l_std_shift,	layout_l_std_widths));
 			}
+
+			layouts.add(new Layout("l_all",			layout_l_password,			layout_l_password_widths));
+			layouts.add(new Layout("l_all_shift",	layout_l_password_shift,	layout_l_password_widths));
 
 			layouts.add(new Layout("l_sym",			layout_l_sym,		layout_l_sym_widths));
 
@@ -779,6 +802,7 @@ public class CKBview2 extends ViewGroup//need to clear setWillNotDraw() to draw
 			{
 			case SK_STD:	idx=isActive_shift?KLT_STD_SHIFT:KLT_STD;	break;
 			case SK_SYM:	idx=KLT_SYM;								break;
+			case SK_ALL:	idx=isActive_shift?KLT_ALL_SHIFT:KLT_ALL;	break;
 			case SK_FUN:	idx=KLT_FUN;								break;
 			}
 		}
@@ -1157,8 +1181,8 @@ public class CKBview2 extends ViewGroup//need to clear setWillNotDraw() to draw
 			}
 
 			//draw cross hair
-			int startIdx, endIdx;
-			TouchInfo ti_start, ti_end;
+			//int startIdx, endIdx;
+			//TouchInfo ti_start, ti_end;
 			int color=penPaint.getColor();
 			final int color_cursor=0xFFFFFFFF, color_start=0xFF0000FF, color_end=0xFFFF0000;
 			switch(cursor_control)

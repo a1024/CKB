@@ -431,6 +431,7 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 
 			case CKBview2.SK_STD:
 			case CKBview2.SK_SYM:
+			case CKBview2.SK_ALL:
 			case CKBview2.SK_SPK:
 			case CKBview2.SK_FUN:
 				if((flags&1)!=0)
