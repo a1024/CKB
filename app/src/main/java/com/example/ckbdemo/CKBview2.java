@@ -637,8 +637,8 @@ public class CKBview2 extends ViewGroup//need to clear setWillNotDraw() to draw
 	{
 		PortraitTextKeyboard()
 		{
-			kb_h=(int)(h*0.4f);
-		//	kb_h=(int)(h*0.32f);
+		//	kb_h=(int)(h*0.4f);
+			kb_h=(int)(h*0.32f);
 			idx=0;
 			layouts=new ArrayList<>(6);
 			if(mode==MODE_URL||mode==MODE_EMAIL)
@@ -654,8 +654,11 @@ public class CKBview2 extends ViewGroup//need to clear setWillNotDraw() to draw
 
 			layouts.add(new Layout("p_sym",			layout_p_sym,		layout_p_sym_widths));
 
+			int kb_h0=kb_h;
+			kb_h=(int)(h*0.45f);
 			layouts.add(new Layout("p_all",			layout_p_password,			layout_p_password_widths));
 			layouts.add(new Layout("p_all_shift",	layout_p_password_shift,	layout_p_password_widths));
+			kb_h=kb_h0;
 
 			layouts.add(new Layout("p_spk",			layout_p_spk,		layout_p_spk_widths));
 			layouts.add(new Layout("p_spk_shift",	layout_p_spk_shift,	layout_p_spk_widths));
@@ -724,6 +727,12 @@ public class CKBview2 extends ViewGroup//need to clear setWillNotDraw() to draw
 			case SK_SPK:	idx=isActive_shift?KPT_SPK_SHIFT:KPT_SPK;	break;
 			case SK_FUN:	idx=KPT_FUN;								break;
 			}
+			ViewGroup.LayoutParams lp=getLayoutParams();
+			if(idx==KPT_ALL||idx==KPT_ALL_SHIFT)
+				lp.height=kb_h=(int)(h*0.45);
+			else
+				lp.height=kb_h=(int)(h*0.32f);
+			setLayoutParams(lp);
 		}
 		@Override void exitQuickMode()
 		{
