@@ -14,6 +14,7 @@
 #include<sys/stat.h>
 #include<errno.h>
 #include<ctype.h>
+#include<math.h>
 
 const char statefn[]="/data/data/com.example.customkb/state.txt";//UPDATE AT RELEASE
 const char tempfn[]="/data/data/com.example.customkb/temp.txt";
@@ -307,7 +308,18 @@ long long 	read_int(ArrayConstHandle text, int *k, int base, int *ret_ndigits)
 }
 float		read_float(ArrayConstHandle text, int *k)
 {
+	float val;
+	long long temp;
+	int ndigits;
 
+	val=(float)read_int(text, k, 10, 0);
+	if(text->data[*k]=='.')
+	{
+		++*k;
+		temp=read_int(text, k, 10, &ndigits);
+		val+=(float)temp*powf(10, -(float)ndigits);
+	}
+	return val;
 }
 int 		parse_state(ArrayConstHandle text, Context *ctx)
 {
@@ -420,6 +432,27 @@ int 		parse_state(ArrayConstHandle text, Context *ctx)
 				break;
 			}
 			*layout_height=read_float(text, &k);
+			if(skip_ws(text, &k)||text->data[k]!='{')
+			{
+				int lineno=get_lineno(text, k);
+				LOGE("Config error line %d: Expected layout definition", lineno);
+				ret=0, ++nerrors;
+				break;
+			}
+			++k;//skip '{'
+			for(;k<text->count;)//row loop
+			{
+				for(;k<text->count;)//button loop
+				{
+					if(skip_ws(text, &k))
+						break;
+					
+				}
+				if(skip_ws(text, &k))
+					break;
+			}
+			if(skip_ws(text, &k))
+				break;
 		}
 		if(!ret)
 			break;
