@@ -40,7 +40,7 @@ C-style line and block comments are supported
 describe button_code with its unicode codepoint or the C-style character literal
 examples:
 	'q', 113, 0x71 all mean the same character
-	'\u1F602', 128514, 0x1F602 all mean the famous 'tears of joy' emoji
+	'\U0001F602', 128514, 0x1F602 all mean the famous 'tears of joy' emoji
 
 list special keys:
 	nab (stands for 'not a button', an empty space)
@@ -73,17 +73,17 @@ list special keys:
 
 layout lang en
 portrait 0.32{
-27 1, tab 1, caps 1, ctrl 1, alt 1, home 1, end 1, pgup 1, pgdn 1, 127 1;
+27 1, '\t' 1, caps 1, ctrl 1, alt 1, home 1, end 1, pgup 1, pgdn 1, 127 1;
 '1' 1, '2' 1, '3' 1, '4' 1, '5' 1, '6' 1, '7' 1, '8' 1, '9' 1, '0' 1;
 'q' 1, 'w' 1, 'e' 1, 'r' 1, 't' 1, 'y' 1, 'u' 1, 'i' 1, 'o' 1, 'p' 1;
 nab 0.5, 'a' 1, 's' 1, 'd' 1, 'f' 1, 'g' 1, 'h' 1, 'j' 1, 'k' 1, 'l' 1, nab 0.5;
 shift 1.5, 'z' 1, 'x' 1, 'c' 1, 'v' 1, 'b' 1, 'n' 1, 'm' 1, '\b' 1.5;
-layout 1.25, settings 1.25, ' ' 5, '.' 1, enter 1.5;
+layout 1.25, settings 1.25, ' ' 5, '.' 1, '\n' 1.5;
 }
 landscape 0.32{
 settings 1, 'q' 1, 'w' 1, 'e' 1, 'r' 1, 't' 1, nab 1, 27 1, home 1, end 1, '7' 1, '8' 1, '9' 1, '0' 1, 'y' 1, 'u' 1, 'i' 1, 'o' 1, 'p' 1;
 shift 1, nab 1/3, 'a' 1, 's' 1, 'd' 1, 'f' 1, 'g' 1, nab 2/3, '\t' 1, ctrl 1, alt 1, '4' 1, '5' 1, '6' 1, ',' 1, nab 1/3, 'h' 1, 'j' 1, 'k' 1, 'l' 1, nab 2/3;
-layout 1, nab 0.75, 'z' 1, 'x' 1, 'c' 1, 'v' 1, 'b' 1, nab 0.25, ' ' 3, '1' 1, '2' 1, '3' 1, '.' 1, nab 0.75, 'n' 1, 'm' 1, nab 0.25, '\b' 1, enter 1;
+layout 1, nab 0.75, 'z' 1, 'x' 1, 'c' 1, 'v' 1, 'b' 1, nab 0.25, ' ' 3, '1' 1, '2' 1, '3' 1, '.' 1, nab 0.75, 'n' 1, 'm' 1, nab 0.25, '\b' 1, '\n' 1;
 }
 
 layout url en

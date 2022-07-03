@@ -7,6 +7,7 @@ add_library(
 	ckb SHARED
 	array.c
 	ckb.c
+	parser.c
 	default_config.cpp
 )
 

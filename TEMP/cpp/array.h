@@ -6,6 +6,8 @@
 #define CUSTOMKB_ARRAY_H
 #include<stddef.h>
 
+#define		SIZEOF(ARR)		(sizeof(ARR)/sizeof(*(ARR)))
+
 void		memswap(void *p1, void *p2, size_t size);
 void		memfill(void *dst, const void *src, size_t dstbytes, size_t srcbytes);
 
@@ -32,22 +34,21 @@ typedef struct ArrayHeaderStruct
 	DebugInfo debug_info;
 	unsigned char data[];
 } ArrayHeader, *ArrayHandle;
-typedef ArrayHeader const *ArrayConstHandle;
+typedef const ArrayHeader *ArrayConstHandle;
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 ArrayHandle		array_construct(const void *src, size_t esize, size_t count, size_t rep, size_t pad, DebugInfo debug_info);
-void 			array_assign(ArrayHandle *arr, const void *data, size_t count);//cannot be nullptr
 ArrayHandle		array_copy(ArrayHandle *arr, DebugInfo debug_info);//shallow
-void			array_free(ArrayHandle *arr);
-void			array_clear(ArrayHandle *arr);//keeps allocation
+void			array_free(ArrayHandle *arr, void (*destructor)(void*));
+void			array_clear(ArrayHandle *arr, void (*destructor)(void*));//keeps allocation
 void			array_fit(ArrayHandle *arr, size_t pad);
 
 void*			array_insert(ArrayHandle *arr, size_t idx, const void *data, size_t count, size_t rep, size_t pad);//cannot be nullptr
 
 size_t			array_size(ArrayHandle const *arr);
 void*			array_at(ArrayHandle *arr, size_t idx);
-const void*		array_at_const(ArrayHandle const *arr, int idx);
+const void*		array_at_const(ArrayConstHandle *arr, int idx);
 void*			array_back(ArrayHandle *arr);
 const void*		array_back_const(ArrayHandle const *arr);
 
@@ -71,17 +72,17 @@ const void*		array_back_const(ArrayHandle const *arr);
 #define			ESTR_ALLOC(TYPE, STR, LEN)				STR=array_construct(0, sizeof(TYPE), 0, 1, LEN+1, __LINE__)
 #define			ESTR_COPY(TYPE, STR, SRC, LEN, REP)		STR=array_construct(SRC, sizeof(TYPE), LEN, REP, 1, __LINE__)
 #endif
-#define			STR_APPEND(STR, SRC, LEN, REP)			array_insert(&(STR), array_size(&(STR)), SRC, LEN, REP, 1)
-#define			STR_FIT(STR)							array_fit(&STR, 1)
-#define			ESTR_AT(TYPE, STR, IDX)					*(TYPE*)array_at(&(STR), IDX)
+#define			STR_APPEND(STR, SRC, LEN, REP)	array_insert(&(STR), array_size(&(STR)), SRC, LEN, REP, 1)
+#define			STR_FIT(STR)					array_fit(&STR, 1)
+#define			ESTR_AT(TYPE, STR, IDX)			*(TYPE*)array_at(&(STR), IDX)
 
-#define			STR_ALLOC(STR, LEN, ...)				ESTR_ALLOC(char, STR, LEN, ##__VA_ARGS__)
-#define			STR_COPY(STR, SRC, LEN, REP, ...)		ESTR_COPY(char, STR, SRC, LEN, REP, ##__VA_ARGS__)
-#define			STR_AT(STR, IDX)						ESTR_AT(char, STR, IDX)
+#define			STR_ALLOC(STR, LEN)				ESTR_ALLOC(char, STR, LEN)
+#define			STR_COPY(STR, SRC, LEN, REP)	ESTR_COPY(char, STR, SRC, LEN, REP)
+#define			STR_AT(STR, IDX)				ESTR_AT(char, STR, IDX)
 
-#define			WSTR_ALLOC(STR, LEN, ...)				ESTR_ALLOC(wchar_t, STR, LEN, ##__VA_ARGS__)
-#define			WSTR_COPY(STR, SRC, LEN, REP, ...)		ESTR_COPY(wchar_t, STR, SRC, LEN, REP, ##__VA_ARGS__)
-#define			WSTR_AT(STR, IDX)						ESTR_AT(wchar_t, STR, IDX)
+#define			WSTR_ALLOC(STR, LEN)			ESTR_ALLOC(wchar_t, STR, LEN)
+#define			WSTR_COPY(STR, SRC, LEN, REP)	ESTR_COPY(wchar_t, STR, SRC, LEN, REP)
+#define			WSTR_AT(STR, IDX)				ESTR_AT(wchar_t, STR, IDX)
 #endif
 
 #endif //CUSTOMKB_ARRAY_H

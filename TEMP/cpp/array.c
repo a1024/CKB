@@ -116,17 +116,12 @@ ArrayHandle		array_construct(const void *src, size_t esize, size_t count, size_t
 		ASSERT_P(src);
 		memfill(arr->data, src, dstsize, srcsize);
 	}
-	if(cap-dstsize>0)
+	else
+		memset(arr->data, 0, dstsize);
+
+	if(cap-dstsize>0)//zero pad
 		memset(arr->data+dstsize, 0, cap-dstsize);
 	return arr;
-}
-void 			array_assign(ArrayHandle *arr, const void *data, size_t count)//cannot be nullptr
-{
-	ASSERT_P(*arr);
-	if(arr[0]->count<count)
-		array_realloc(arr, count, 0);
-	memcpy(arr[0]->data, data, count*arr[0]->esize);
-	arr[0]->count=count;
 }
 ArrayHandle		array_copy(ArrayHandle *arr, DebugInfo debug_info)
 {
@@ -142,15 +137,27 @@ ArrayHandle		array_copy(ArrayHandle *arr, DebugInfo debug_info)
 	a2->debug_info=debug_info;
 	return a2;
 }
-void			array_free(ArrayHandle *arr)//can be nullptr
+void			array_free(ArrayHandle *arr, void (*destructor)(void*))//can be nullptr
 {
+	if(*arr&&destructor)
+	{
+		for(size_t k=0;k<arr[0]->count;++k)
+			destructor(array_at(arr, k));
+	}
 	free(*arr);
 	*arr=0;
 }
-void			array_clear(ArrayHandle *arr)//can be nullptr
+void			array_clear(ArrayHandle *arr, void (*destructor)(void*))//can be nullptr
 {
 	if(*arr)
+	{
+		if(destructor)
+		{
+			for(size_t k=0;k<arr[0]->count;++k)
+				destructor(array_at(arr, k));
+		}
 		arr[0]->count=0;
+	}
 }
 void*			array_insert(ArrayHandle *arr, size_t idx, const void *data, size_t count, size_t rep, size_t pad)
 {
@@ -193,7 +200,7 @@ void*			array_at(ArrayHandle *arr, size_t idx)
 		return 0;
 	return arr[0]->data+idx*arr[0]->esize;
 }
-const void*		array_at_const(ArrayHandle const *arr, int idx)
+const void*		array_at_const(ArrayConstHandle *arr, int idx)
 {
 	if(!arr[0])
 		return 0;
