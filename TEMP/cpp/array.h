@@ -1,9 +1,12 @@
 //
-// Created by MSI on 7/2/2022.
+// Created by MSI on 2022-07-02.
 //
 
 #ifndef CUSTOMKB_ARRAY_H
 #define CUSTOMKB_ARRAY_H
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 #include<stddef.h>
 
 #define		SIZEOF(ARR)		(sizeof(ARR)/sizeof(*(ARR)))
@@ -48,9 +51,9 @@ void*			array_insert(ArrayHandle *arr, size_t idx, const void *data, size_t coun
 
 size_t			array_size(ArrayHandle const *arr);
 void*			array_at(ArrayHandle *arr, size_t idx);
-const void*		array_at_const(ArrayConstHandle *arr, int idx);
+const void*		array_at_const(ArrayConstHandle const *arr, int idx);
 void*			array_back(ArrayHandle *arr);
-const void*		array_back_const(ArrayHandle const *arr);
+const void*		array_back_const(ArrayConstHandle const *arr);
 
 #ifdef DEBUG_INFO_STR
 #define			ARRAY_ALLOC(ELEM_TYPE, ARR, COUNT, PAD, DEBUG_INFO)	ARR=array_construct(0, sizeof(ELEM_TYPE), COUNT, 1, PAD, DEBUG_INFO)

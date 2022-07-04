@@ -1,5 +1,5 @@
 //
-// Created by MSI on 7/2/2022.
+// Created by MSI on 2022-07-02.
 //
 
 #include"array.h"
@@ -200,7 +200,7 @@ void*			array_at(ArrayHandle *arr, size_t idx)
 		return 0;
 	return arr[0]->data+idx*arr[0]->esize;
 }
-const void*		array_at_const(ArrayConstHandle *arr, int idx)
+const void*		array_at_const(ArrayConstHandle const *arr, int idx)
 {
 	if(!arr[0])
 		return 0;
@@ -212,7 +212,7 @@ void*			array_back(ArrayHandle *arr)
 		return 0;
 	return arr[0]->data+(arr[0]->count-1)*arr[0]->esize;
 }
-const void*		array_back_const(ArrayHandle const *arr)
+const void*		array_back_const(ArrayConstHandle const *arr)
 {
 	if(!*arr||!arr[0]->count)
 		return 0;

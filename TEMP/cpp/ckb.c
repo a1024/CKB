@@ -39,7 +39,7 @@ const char *modbuttonlabels[]=
 };
 const char *mcodes[]=
 {
-#define		CKBKEY(LABEL, BUTTON, KEYWORD)	KEYWORD,
+#define		CKBKEY(FLAG, DESCRIPTION, KEYWORD)	KEYWORD,
 #include	"ckb_mkeys.h"
 #undef		CKBKEY
 };
@@ -68,7 +68,7 @@ void		free_row(void *data)
 void		free_layout(void *data)
 {
 	Layout *layout=(Layout*)data;
-	array_free(&layout->name, 0);
+	array_free(&layout->lang, 0);
 	array_free(&layout->portrait, free_row);
 	array_free(&layout->landscape, free_row);
 }
@@ -95,12 +95,14 @@ int			log_error(const char *f, int line, const char *format, ...)
 
 	LOGE("%s", g_buf);//TODO: display error on keyboard
 
-	//if(glob_alloc())
-	//{
-	//	if(!glob->error)
-	//		STR_ALLOC(glob->error, printed+1);
-	//	array_assign(&glob->error, g_buf, printed+1);
-	//}
+#if 0
+	if(glob_alloc())
+	{
+		if(!glob->error)
+			STR_ALLOC(glob->error, printed+1);
+		array_assign(&glob->error, g_buf, printed+1);
+	}
+#endif
 	++nerrors;
 	return nerrors-1;
 }
@@ -169,7 +171,10 @@ EXTERN_C JNIEXPORT int JNICALL Java_com_example_customkb_CKBnativelib_init(JNIEn
 				text=load_text(statefn);
 		}
 		if(text)
+		{
 			parse_state(text, &glob->ctx);
+			calc_raster_sizes(&glob->ctx, glob->w, glob->h, glob->w>glob->h);
+		}
 	}
 	return 0;
 }
