@@ -62,7 +62,7 @@ typedef struct RowStruct
 typedef struct LayoutStruct
 {
 	LayoutType type;
-	ArrayHandle lang;//string, optional for type lang & url
+	ArrayHandle lang;//string, for layout types 'lang' & 'url'
 	ArrayHandle portrait, landscape;//array of rows
 	float p_height, l_height;//percentage of screen height (width and height get swapped on landscape)
 } Layout;

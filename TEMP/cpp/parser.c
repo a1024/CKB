@@ -538,7 +538,7 @@ static int	calc_raster_sizes_rows(ArrayHandle rows, int width, int height, float
 
 	if(kb_percent<=0||kb_percent>1)
 		return 0;
-	kb_height=(int)(height*kb_percent);
+	kb_height=(int)((float)height*kb_percent);
 	nrows=(int)rows->count;
 	for(int ky=0;ky<nrows;++ky)
 	{
