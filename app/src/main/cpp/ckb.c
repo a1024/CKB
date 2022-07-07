@@ -11,6 +11,7 @@
 #include<errno.h>
 static const char file[]=__FILE__;
 
+	#define OVERWRITE_EVERYTIME
 //	#define STORE_ERRORS
 
 const char statefn[]="/data/data/com.example.customkb/state.txt";//UPDATE AT RELEASE
@@ -218,7 +219,11 @@ EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_init(JNIE
 	}
 	if(ret==1)
 	{
+#ifdef OVERWRITE_EVERYTIME
+		text=0;
+#else
 		text=load_text(statefn);
+#endif
 		if(!text)
 		{
 			size_t len=strlen(default_config);
