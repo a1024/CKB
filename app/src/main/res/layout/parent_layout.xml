@@ -6,7 +6,7 @@
     android:layout_height="wrap_content"
     app:layout_anchorGravity="bottom">
 
-    <com.example.ckbdemo.CKBview2
+    <com.example.customkb.CKBview3
         android:id="@+id/kb_view"
         android:layout_width="0dp"
         android:layout_height="0dp"/>

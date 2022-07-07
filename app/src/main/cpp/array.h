@@ -6,13 +6,29 @@
 #define CUSTOMKB_ARRAY_H
 #ifdef _MSC_VER
 #define _CRT_SECURE_NO_WARNINGS
+#include<stdio.h>
+#define snprintf sprintf_s
+#define vsnprintf vsprintf_s
+#define LOGI printf
+#define LOGE printf
+#else
+#include<jni.h>
+#include<android/log.h>
+extern const char log_tag[];
+#define		LOGI(...)  __android_log_print(ANDROID_LOG_INFO, log_tag, ##__VA_ARGS__)
+#define		LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, log_tag, ##__VA_ARGS__)
 #endif
 #include<stddef.h>
 
 #define		SIZEOF(ARR)		(sizeof(ARR)/sizeof(*(ARR)))
 
-void		memswap(void *p1, void *p2, size_t size);
 void		memfill(void *dst, const void *src, size_t dstbytes, size_t srcbytes);
+void		memswap_slow(void *p1, void *p2, size_t size);
+void 		memswap(void *p1, void *p2, size_t size, void *temp);
+void		memreverse(void *p, size_t count, size_t esize);//calls memswap
+void 		memrotate(void *p, size_t byteoffset, size_t bytesize, void *temp);//temp buffer is min(byteoffset, bytesize-byteoffset)
+int 		binary_search(void *base, size_t count, size_t esize, int (*threeway)(const void*, const void*), const void *val, size_t *idx);//returns true if found, otherwise the idx is where val should be inserted
+void 		isort(void *base, size_t count, size_t esize, int (*threeway)(const void*, const void*));//binary insertion sort
 
 int			log_error(const char *file, int line, const char *format, ...);
 int			valid(const void *p);
@@ -42,6 +58,7 @@ typedef const ArrayHeader *ArrayConstHandle;
 #pragma warning(pop)
 #endif
 ArrayHandle		array_construct(const void *src, size_t esize, size_t count, size_t rep, size_t pad, DebugInfo debug_info);
+void 			array_assign(ArrayHandle *arr, const void *data, size_t count);//cannot be nullptr
 ArrayHandle		array_copy(ArrayHandle *arr, DebugInfo debug_info);//shallow
 void			array_free(ArrayHandle *arr, void (*destructor)(void*));
 void			array_clear(ArrayHandle *arr, void (*destructor)(void*));//keeps allocation

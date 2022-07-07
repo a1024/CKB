@@ -35,7 +35,7 @@ import android.widget.EditText;
 
 public class ColorPicker extends ViewGroup
 {
-	public static final String TAG="CKBview2";
+	public static final String TAG="customkb";
 	public static class HSL
 	{
 		float

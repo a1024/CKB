@@ -7,16 +7,6 @@
 #include<string.h>
 static const char file[]=__FILE__;
 
-void				memswap(void *p1, void *p2, size_t size)
-{
-	unsigned char *s1=(unsigned char*)p1, *s2=(unsigned char*)p2, *end=s1+size;
-	for(;s1<end;++s1, ++s2)
-	{
-		const unsigned char t=*s1;
-		*s1=*s2;
-		*s2=t;
-	}
-}
 void				memfill(void *dst, const void *src, size_t dstbytes, size_t srcbytes)
 {
 	unsigned copied;
@@ -37,12 +27,101 @@ void				memfill(void *dst, const void *src, size_t dstbytes, size_t srcbytes)
 	if(copied<dstbytes)
 		memcpy(d+copied, d, dstbytes-copied);
 }
+void				memswap_slow(void *p1, void *p2, size_t size)
+{
+	unsigned char *s1=(unsigned char*)p1, *s2=(unsigned char*)p2, *end=s1+size;
+	for(;s1<end;++s1, ++s2)
+	{
+		const unsigned char t=*s1;
+		*s1=*s2;
+		*s2=t;
+	}
+}
+void 				memswap(void *p1, void *p2, size_t size, void *temp)
+{
+	memcpy(temp, p1, size);
+	memcpy(p1, p2, size);
+	memcpy(p2, temp, size);
+}
+void				memreverse(void *p, size_t count, size_t esize)
+{
+	size_t totalsize=count*esize;
+	unsigned char *s1=(unsigned char*)p, *s2=s1+totalsize-esize;
+	void *temp=malloc(esize);
+	while(s1<s2)
+	{
+		memswap(s1, s2, esize, temp);
+		s1+=esize, s2-=esize;
+	}
+	free(temp);
+}
+void 				memrotate(void *p, size_t byteoffset, size_t bytesize, void *temp)
+{
+	unsigned char *buf=(unsigned char*)p;
+
+	if(byteoffset<bytesize-byteoffset)
+	{
+		memcpy(temp, buf, byteoffset);
+		memmove(buf, buf+byteoffset, bytesize-byteoffset);
+		memcpy(buf+bytesize-byteoffset, temp, byteoffset);
+	}
+	else
+	{
+		memcpy(temp, buf+byteoffset, bytesize-byteoffset);
+		memmove(buf+bytesize-byteoffset, buf, byteoffset);
+		memcpy(buf, temp, bytesize-byteoffset);
+	}
+}
+int 				binary_search(void *base, size_t count, size_t esize, int (*threeway)(const void*, const void*), const void *val, size_t *idx)
+{
+	unsigned char *buf=(unsigned char*)base;
+	ptrdiff_t L=0, R=(ptrdiff_t)count-1, mid;
+	int ret;
+
+	while(L<=R)
+	{
+		mid=(L+R)>>1;
+		ret=threeway(buf+mid*esize, val);
+		if(ret<0)
+			L=mid+1;
+		else if(ret>0)
+			R=mid-1;
+		else
+		{
+			if(idx)
+				*idx=mid;
+			return 1;
+		}
+	}
+	if(idx)
+		*idx=L+(L<count&&threeway(buf+L*esize, val)<0);
+	return 0;
+}
+void 				isort(void *base, size_t count, size_t esize, int (*threeway)(const void*, const void*))
+{
+	unsigned char *buf=(unsigned char*)base;
+	size_t k;
+	void *temp;
+
+	if(count<2)
+		return;
+
+	temp=malloc((count>>1)*esize);
+	for(k=1;k<count;++k)
+	{
+		size_t idx=0;
+		binary_search(buf, k, esize, threeway, buf+k*esize, &idx);
+		if(idx<k)
+			memrotate(buf+idx*esize, (k-idx)*esize, (k+1-idx)*esize, temp);
+	}
+	free(temp);
+}
 
 int					valid(const void *p)
 {
 	size_t val=(size_t)p;
 
-	if(sizeof(size_t)==8)
+	if(sizeof(size_t)==8)//do not remove: the compiler should remove the dead code
 	{
 		if(val==0xCCCCCCCCCCCCCCCC)
 			return 0;
@@ -119,9 +198,22 @@ ArrayHandle		array_construct(const void *src, size_t esize, size_t count, size_t
 	else
 		memset(arr->data, 0, dstsize);
 
-	if(cap-dstsize>0)//zero pad
+	if(cap>dstsize)//zero pad
 		memset(arr->data+dstsize, 0, cap-dstsize);
 	return arr;
+}
+void 			array_assign(ArrayHandle *arr, const void *data, size_t count)//cannot be nullptr
+{
+	//LOGI("array_assign: arr = %p", arr);//
+	//LOGI("array_assign: arr = %p, *arr = %p", arr, arr?*arr:0);//
+	ASSERT_P(*arr);
+	if(arr[0]->count<count)
+		array_realloc(arr, count, 0);
+	if(data)
+		memcpy(arr[0]->data, data, count*arr[0]->esize);
+	else
+		memset(arr[0]->data, 0, count*arr[0]->esize);
+	arr[0]->count=count;
 }
 ArrayHandle		array_copy(ArrayHandle *arr, DebugInfo debug_info)
 {
@@ -163,6 +255,7 @@ void*			array_insert(ArrayHandle *arr, size_t idx, const void *data, size_t coun
 {
 	size_t start, srcsize, dstsize, movesize;
 
+	//LOGE("sizeof(void*) == %d, ARR == %p", sizeof(void*), arr);
 	ASSERT_P(*arr);
 	start=idx*arr[0]->esize;
 	srcsize=count*arr[0]->esize;

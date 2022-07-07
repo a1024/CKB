@@ -38,7 +38,7 @@ import java.util.ArrayList;
 
 public class CKBSettings extends ViewGroup
 {
-	public static final String TAG="CKBview2";
+	public static final String TAG="customkb";
 
 	enum ViewId//child views
 	{
@@ -365,7 +365,7 @@ public class CKBSettings extends ViewGroup
 				str.append(state.get(k));
 			}
 		}
-		Log.e(TAG, String.format("%s, state: %s%s", label, str.toString(), isStateTheme()?" THEME":""));
+		Log.e(TAG, String.format("%s, state: %s%s", label, str, isStateTheme()?" THEME":""));
 	}
 	void scroll()
 	{
@@ -429,7 +429,7 @@ public class CKBSettings extends ViewGroup
 				url			.layout(0, y, dx, y+h_item);		y+=h_item*2;
 				numeric		.layout(0, y, dx, y+h_item);		y+=h_item*2;
 				decimal		.layout(0, y, dx, y+h_item);		y+=h_item*2;
-				password	.layout(0, y, dx, y+h_item);		y+=h_item*2;
+				password	.layout(0, y, dx, y+h_item);	//	y+=h_item*2;
 			}
 			if(isStateTheme())
 			{

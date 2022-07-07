@@ -24,7 +24,7 @@ CKBKEY(KEY_RIGHT, "Right", "right")
 CKBKEY(KEY_UP, "Up", "up")
 CKBKEY(KEY_DOWN, "Down", "down")
 
-CKBKEY(KEY_UNSERT, "Ins", "ins")
+CKBKEY(KEY_INSERT, "Ins", "ins")
 
 CKBKEY(KEY_CAPSLOCK, "Caps\nLock", "caps")
 CKBKEY(KEY_NUMLOCK, "Num.\nLock", "numlk")

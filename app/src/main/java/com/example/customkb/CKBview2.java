@@ -57,7 +57,7 @@ public class CKBview2 extends ViewGroup//need to clear setWillNotDraw() to draw
 		DEBUG_CC	=false,
 		DEBUG_STATE	=false,
 		DEBUG_MODE	=false;
-	public static final String TAG="CKBview2";
+	public static final String TAG="customkb";
 	public static ArrayList<String> urgentMsg=new ArrayList<>();//when logcat isn't enough
 	public static void addError(Exception e)
 	{

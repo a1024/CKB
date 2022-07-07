@@ -22,7 +22,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class CKBactivity extends AppCompatActivity
 {
-	//public static final String TAG="CKBview2";
+	//public static final String TAG="customkb";
 	CKBSettings settingsView=null;
 	@Override protected void onCreate(Bundle savedInstanceState)//called on switch orientation too
 	{

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">CKB demo</string>
+    <string name="app_name">Customizable Keyboard</string>
     <string name="activity_name">CKB Settings</string>
     <string name="title_activity_settings">SettingsActivity</string>
 

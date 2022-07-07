@@ -4,20 +4,6 @@
 
 #ifndef CUSTOMKB_CKB_H
 #define CUSTOMKB_CKB_H
-#ifdef _MSC_VER
-#define _CRT_SECURE_NO_WARNINGS
-#include<stdio.h>
-#define snprintf sprintf_s
-#define vsnprintf vsprintf_s
-#define LOGI printf
-#define LOGE printf
-#else
-#include<jni.h>
-#include<android/log.h>
-extern const char log_tag[];
-#define		LOGI(...)  __android_log_print(ANDROID_LOG_INFO, log_tag, ##__VA_ARGS__)
-#define		LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, log_tag, ##__VA_ARGS__)
-#endif
 #include"array.h"
 
 
@@ -38,16 +24,30 @@ typedef enum ModKeyTypeEnum
 extern const char *buttonlabels[], *modbuttonlabels[], *mcodes[];
 #define 	MODMASK		0x80000000//keys which are not in unicode have MSB set
 
+typedef enum ModeTypeEnum
+{
+	//text modes			allow layout & language switch
+	MODE_TEXT,
+	MODE_PASSWORD,			//default is ASCII
+	MODE_URL, MODE_EMAIL,	//both are the same
+
+	//numeric modes			cannot switch layout nor language
+	MODE_NUMBER,
+	MODE_PHONE_NUMBER,
+	MODE_NUMERIC_PASSWORD,
+} ModeType;
 typedef enum LayoutTypeEnum
 {
-	//these layouts must appear only once:
-	LAYOUT_ASCII,
-	LAYOUT_NUMPAD,
-	LAYOUT_DECNUMPAD,
+	LAYOUT_UNINITIALIZED,//illegal value
 
 	//these layouts must have language 'lang':
 	LAYOUT_LANG,
 	LAYOUT_URL,
+
+	//these layouts must appear only once:
+	LAYOUT_ASCII,
+	LAYOUT_NUMPAD,
+	LAYOUT_DECNUMPAD,
 } LayoutType;
 typedef struct ButtonInfoStruct
 {
@@ -64,24 +64,25 @@ typedef struct LayoutStruct
 	LayoutType type;
 	ArrayHandle lang;//string, for layout types 'lang' & 'url'
 	ArrayHandle portrait, landscape;//array of rows
-	float p_height, l_height;//percentage of screen height (width and height get swapped on landscape)
+	float p_percent, l_percent;//percentage of screen height (width and height get swapped on landscape)
+	int p_height, l_height;//keyboard height in pixels
 } Layout;
 typedef struct ContextStruct
 {
 	ArrayHandle layouts;//'Layout' array
-	int defaultlangidx;
+	ArrayHandle defaultlang;//string
 } Context;
 typedef struct GlobalsStruct
 {
 	int w, h;
 
 	Context ctx;
+	ModeType mode;
 	int layoutidx;
-
-	ArrayHandle error;
 } Globals;
 
 extern Globals *glob;
+extern ArrayHandle errors;
 extern int	nerrors;
 
 void		free_row(void *data);

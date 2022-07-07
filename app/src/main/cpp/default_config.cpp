@@ -72,7 +72,7 @@ list special keys:
 */
 
 layout lang en
-portrait 0.32{
+portrait 0.36{//0.384
 27 1, '\t' 1, caps 1, ctrl 1, alt 1, home 1, end 1, pgup 1, pgdn 1, 127 1;
 '1' 1, '2' 1, '3' 1, '4' 1, '5' 1, '6' 1, '7' 1, '8' 1, '9' 1, '0' 1;
 'q' 1, 'w' 1, 'e' 1, 'r' 1, 't' 1, 'y' 1, 'u' 1, 'i' 1, 'o' 1, 'p' 1;
@@ -87,7 +87,7 @@ layout 1, nab 0.75, 'z' 1, 'x' 1, 'c' 1, 'v' 1, 'b' 1, nab 0.25, ' ' 3, '1' 1, '
 }
 
 layout url en
-portrait 0.32{
+portrait 0.36{//0.384
 27 1, '\t' 1, caps 1, ctrl 1, alt 1, home 1, end 1, pgup 1, pgdn 1, 127 1;
 '1' 1, '2' 1, '3' 1, '4' 1, '5' 1, '6' 1, '7' 1, '8' 1, '9' 1, '0' 1;
 'q' 1, 'w' 1, 'e' 1, 'r' 1, 't' 1, 'y' 1, 'u' 1, 'i' 1, 'o' 1, 'p' 1;
@@ -121,7 +121,7 @@ layout 1, nab 0.75,	'z' 1, 'x' 1, 'c' 1, 'v' 1, 'b' 1, nab 0.25, ' ' 2,			'1' 1,
 }
 
 layout numpad
-portrait 0.32{
+portrait 0.256{
 '1' 1, '2' 1, '3' 1, home 1;
 '4' 1, '5' 1, '6' 1, end 1;
 '7' 1, '8' 1, '9' 1, '\b' 1;
@@ -133,7 +133,7 @@ landscape 0.21{
 }
 
 layout decnumpad
-portrait 0.32{
+portrait 0.256{
 '1' 1, '2' 1, '3' 1, '+' 1, home 1;
 '4' 1, '5' 1, '6' 1, '-' 1, end 1;
 '7' 1, '8' 1, '9' 1, '/' 1, '\b' 1;

@@ -21,16 +21,10 @@ static int	parse_error(ArrayConstHandle text, int k, const char *msg)
 #ifdef _MSC_VER
 	LOGE("Config error line %d: %s\n", lineno+1, msg);
 #else
-	LOGE("Config error line %d: %s", lineno+1, msg);
+	log_error("config", lineno+1, "%s", msg);
 #endif
 	++nerrors;
 	return 0;
-}
-static void	parse_error_eof(ArrayConstHandle text, int k, const char *expected)
-{
-	int lineno=get_lineno(text, k);
-	LOGE("Config line %d: Unexpected end of file. %s", lineno, expected);
-	++nerrors;
 }
 static int	skip_ws(ArrayConstHandle text, int *k)
 {
@@ -97,16 +91,13 @@ static int	memcmp_ascii_ci(const char *text, const char *kw)//returns length of 
 		return 0;
 	return k;
 }
-static int	parse_langname(ArrayConstHandle text, int *k, Layout *layout)
+static int	parse_langname(ArrayConstHandle text, int *k, ArrayHandle *lang)
 {
 	if(skip_ws(text, k))
-	{
-		parse_error_eof(text, *k, "Expected language type");
-		return 0;
-	}
+		return parse_error(text, *k, "Expected language type");
 	int len=get_id(text, *k);
-	STR_ALLOC(layout->lang, len);
-	memcpy(layout->lang->data, text->data+*k, len);
+	STR_ALLOC(*lang, len);
+	memcpy(lang[0]->data, text->data+*k, len);
 	*k+=len;
 	return 1;
 }
@@ -227,7 +218,8 @@ static int	esc2codepoint(ArrayConstHandle text, int *k)//one escape sequence -> 
 		code=(int)read_int(text, k, 16, &ndigits);
 		break;
 	default:
-		LOGE("Invalid escape sequence: %.*s", 3, text->data+*k-1);
+		log_error("Unknown", 0, "Invalid escape sequence: %.*s", 3, text->data+*k-1);
+		//LOGE("Invalid escape sequence: %.*s", 3, text->data+*k-1);
 		code='?';
 		break;
 	}
@@ -254,7 +246,7 @@ static int	kwmap_cmp(const void *left, const void *right)
 		ac=127;
 	if(!bc)
 		bc=127;
-	return ac<bc;
+	return (ac>bc)-(ac<bc);
 }
 #ifdef _MSC_VER
 static void	debug_print_keywords()
@@ -283,16 +275,7 @@ static void	kwmap_init(ArrayHandle *kwmap)
 #if 0
 	qsort(kwmap[0]->data, MKEY_COUNT, sizeof(Keyword), kwmap_cmp);//BROKEN
 #else
-	for(int k=0;k<MKEY_COUNT-1;++k)//insertion sort
-	{
-		Keyword *left=(Keyword*)array_at(kwmap, k), *right;
-		for(int k2=k+1;k2<MKEY_COUNT;++k2)
-		{
-			right=(Keyword*)array_at(kwmap, k2);
-			if(kwmap_cmp(right, left))
-				memswap(left, right, sizeof(Keyword));
-		}
-	}
+	isort(kwmap[0]->data, kwmap[0]->count, kwmap[0]->esize, kwmap_cmp);
 #endif
 #ifdef _MSC_VER
 	debug_print_keywords();//
@@ -337,7 +320,8 @@ static int	read_codepoint(ArrayConstHandle text, int *k)
 		if(text->data[*k]!='\'')
 		{
 			int lineno=get_lineno(text, *k);
-			LOGE("Config error line %d: Expected a closing quote", lineno);
+			log_error("Config", lineno+1, "Expected a closing quote");
+			//LOGE("Config error line %d: Expected a closing quote", lineno);
 			return 0;
 		}
 		++*k;
@@ -384,25 +368,13 @@ int 		parse_state(ArrayConstHandle text, Context *ctx)
 	{
 		if(skip_ws(text, &k))
 			break;
-		if(len=memcmp_ascii_ci((char*)text->data+k, kw_lang))//default language declaration
+		if((len=memcmp_ascii_ci((char*)text->data+k, kw_lang)))//default language declaration
 		{
 			k+=len;
 			if(skip_ws(text, &k))
 				return parse_error(text, k, "Expected default language");
-			int k2=0;
-			for(;k2<(int)ctx->layouts->count;++k2)
-			{
-				Layout const *l2=(Layout const*)array_at_const(&ctx->layouts, k2);
-				if(len=memcmp_ascii_ci((char*)text->data+k, (const char*)l2->lang->data))
-					break;
-			}
-			if(!len)
-			{
-				parse_error(text, k, "Default language is not defined yet");
+			if(!parse_langname(text, &k, &ctx->defaultlang))
 				return 0;
-			}
-			k+=len;
-			ctx->defaultlangidx=k2;
 			continue;
 		}
 		len=memcmp_ascii_ci((char*)text->data+k, kw_layout);		//new layout
@@ -415,31 +387,31 @@ int 		parse_state(ArrayConstHandle text, Context *ctx)
 		if(skip_ws(text, &k))
 			return parse_error(text, k, "Expected layout type");
 		layout=(Layout*)ARRAY_APPEND(ctx->layouts, 0, 1, 1, 0);
-		if(len=memcmp_ascii_ci((char*)text->data+k, kw_lang))//layout type is 'lang'
+		if((len=memcmp_ascii_ci((char*)text->data+k, kw_lang)))//layout type is 'lang'
 		{
 			k+=len;
 			layout->type=LAYOUT_LANG;
-			if(!parse_langname(text, &k, layout))
+			if(!parse_langname(text, &k, &layout->lang))
 				break;
 		}
-		else if(len=memcmp_ascii_ci((char*)text->data+k, kw_url))//layout type is 'url'
+		else if((len=memcmp_ascii_ci((char*)text->data+k, kw_url)))//layout type is 'url'
 		{
 			k+=len;
 			layout->type=LAYOUT_URL;
-			if(!parse_langname(text, &k, layout))
+			if(!parse_langname(text, &k, &layout->lang))
 				break;
 		}
-		else if(len=memcmp_ascii_ci((char*)text->data+k, kw_ascii))//layout type is 'ascii'
+		else if((len=memcmp_ascii_ci((char*)text->data+k, kw_ascii)))//layout type is 'ascii'
 		{
 			k+=len;
 			layout->type=LAYOUT_ASCII;
 		}
-		else if(len=memcmp_ascii_ci((char*)text->data+k, kw_numpad))//layout type is 'numpad'
+		else if((len=memcmp_ascii_ci((char*)text->data+k, kw_numpad)))//layout type is 'numpad'
 		{
 			k+=len;
 			layout->type=LAYOUT_NUMPAD;
 		}
-		else if(len=memcmp_ascii_ci((char*)text->data+k, kw_decnumpad))//layout type is 'decnumpad'
+		else if((len=memcmp_ascii_ci((char*)text->data+k, kw_decnumpad)))//layout type is 'decnumpad'
 		{
 			k+=len;
 			layout->type=LAYOUT_DECNUMPAD;
@@ -447,21 +419,53 @@ int 		parse_state(ArrayConstHandle text, Context *ctx)
 		else//layout must be one of the previous types
 			return parse_error(text, k, "Expected layout type");
 
+		for(int k2=0, nlayouts=(int)ctx->layouts->count-1;k2<nlayouts;++k2)			//check for duplicate layouts
+		{
+			Layout const *l2=(Layout const*)array_at(&ctx->layouts, k2);
+			if(layout->type==l2->type)
+			{
+				if((layout->type==LAYOUT_LANG||layout->type==LAYOUT_URL))
+				{
+					if(!strcmp((char*)l2->lang->data, (char*)layout->lang->data))
+					{
+						int lineno=get_lineno(text, k);
+						log_error("Config", lineno+1, "Duplicate \'layout %s %s\'", layout->type==LAYOUT_LANG?kw_lang:kw_url, (char*)layout->lang->data);
+						//LOGE("Config(%d): Duplicate \'layout %s %s\'", lineno, layout->type==LAYOUT_LANG?kw_lang:kw_url, (char*)layout->lang->data);
+						//return 0;
+					}
+				}
+				else
+				{
+					int lineno=get_lineno(text, k);
+					const char *a;
+					switch(layout->type)
+					{
+					case LAYOUT_ASCII:a="ASCII";break;
+					case LAYOUT_NUMPAD:a="numpad";break;
+					case LAYOUT_DECNUMPAD:a="decnumpad";break;
+					default:a="<unknown>";break;
+					}
+					log_error("Config", lineno+1, "Duplicate \'layout %s\'", a);
+					//LOGE("Config(%d): Duplicate \'layout %s\'", lineno, a);
+				}
+			}
+		}
+
 		if(skip_ws(text, &k))
 			return parse_error(text, k, "Expected portrait or landscape");
 		for(int k2=0;k2<2;++k2)
 		{
-			if(len=memcmp_ascii_ci((char *)text->data+k, kw_portrait))
+			if((len=memcmp_ascii_ci((char *)text->data+k, kw_portrait)))
 			{
 				k+=len;
 				rows=&layout->portrait;
-				layout_height=&layout->p_height;
+				layout_height=&layout->p_percent;
 			}
-			else if(len=memcmp_ascii_ci((char*)text->data+k, kw_landscape))
+			else if((len=memcmp_ascii_ci((char*)text->data+k, kw_landscape)))
 			{
 				k+=len;
 				rows=&layout->landscape;
-				layout_height=&layout->l_height;
+				layout_height=&layout->l_percent;
 			}
 			else
 				return parse_error(text, k, "Expected portrait or landscape declaration");
@@ -528,7 +532,28 @@ int 		parse_state(ArrayConstHandle text, Context *ctx)
 				break;
 		}
 	}
-	return 1;
+	if(!ctx->defaultlang)
+		return parse_error(text, (int)text->count-1, "Missing default language declaration, for example: \'lang en\'");
+	int nlayouts=(int)ctx->layouts->count, found_lang=0, found_url=0;
+	for(int kl=0;kl<nlayouts;++kl)
+	{
+		layout=(Layout*)array_at(&ctx->layouts, kl);
+		if((layout->type==LAYOUT_LANG||layout->type==LAYOUT_URL)&&!strcmp((char*)layout->lang->data, (char*)ctx->defaultlang->data))
+		{
+			if(layout->type==LAYOUT_LANG)
+				found_lang=1;
+			else
+				found_url=1;
+		}
+	}
+	int lno=0;
+	if(!found_lang||!found_url)
+		lno=get_lineno(text, (int)text->count-1);
+	if(!found_lang)
+		log_error("Config", lno+1, "Missing \'layout lang %s\'", (char*)ctx->defaultlang->data);
+	if(!found_url)
+		log_error("Config", lno+1, "Missing \'layout url %s\'", (char*)ctx->defaultlang->data);
+	return found_lang&&found_url;
 }
 
 static int	calc_raster_sizes_rows(ArrayHandle rows, int width, int height, float kb_percent)
@@ -570,14 +595,19 @@ int 		calc_raster_sizes(Context *ctx, int width, int height, int is_landscape)
 	int ret=1;
 
 	if(is_landscape)
-		memswap(&width, &height, sizeof(int));
+		memswap_slow(&width, &height, sizeof(int));
 
 	//calculate button raster sizes from relative sizes
 	for(int kl=0;kl<(int)ctx->layouts->count;++kl)//for each layout
 	{
 		Layout *layout=(Layout*)array_at(&ctx->layouts, kl);
-		ret&=calc_raster_sizes_rows(layout->portrait, width, height, layout->p_height);
-		ret&=calc_raster_sizes_rows(layout->landscape, height, width, layout->l_height);
+		ret&=calc_raster_sizes_rows(layout->portrait, width, height, layout->p_percent);
+		ret&=calc_raster_sizes_rows(layout->landscape, height, width, layout->l_percent);
+		if(ret)
+		{
+			layout->p_height=(int)((float)height*layout->p_percent);
+			layout->l_height=(int)((float)width*layout->l_percent);
+		}
 	}
 	return ret;
 }

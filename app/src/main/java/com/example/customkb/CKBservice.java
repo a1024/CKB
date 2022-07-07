@@ -41,10 +41,9 @@ import java.nio.CharBuffer;
 public class CKBservice extends InputMethodService//implements KeyboardView.OnKeyboardActionListener
 {
 	public static final boolean DEBUGGER=false;
-	private static final String TAG="CKBview2";
-//	private static final String TAG="CKBservice";
+	private static final String TAG="customkb";
 
-	public boolean transparent=true;
+	//public boolean transparent=true;
 	public CKBservice(){}
 
 	//for user-interface initialization, in particular to deal with configuration changes while the service is running
@@ -60,7 +59,7 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 	@Override public void onStartInput(EditorInfo attribute, boolean restarting){}
 
 	RelativeLayout main_layout;
-	CKBview2 myView2;
+	CKBview3 myView;
 	//Create and return the view hierarchy used for the input area (such as a soft keyboard).
 	//This will be called once, when the input area is first displayed.
 	//You can return null to have no input area; the default implementation returns null.
@@ -73,13 +72,13 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 			//Log.e(TAG, System.getProperty("java.version"));//
 			LayoutInflater inflater=getLayoutInflater();
 			main_layout=(RelativeLayout)inflater.inflate(R.layout.parent_layout, null);
-			myView2=main_layout.findViewById(R.id.kb_view);
-			myView2.initCKB(this);
+			myView=main_layout.findViewById(R.id.kb_view);
+			myView.initCKB(this);
 			return main_layout;
 		}
 		catch(Exception e)
 		{
-			CKBview2.addError(e);
+			CKBview3.addError(e);
 		//	Log.e(TAG, "exception", e);
 		}
 		return null;
@@ -101,8 +100,8 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 	//Called when the input view is being shown and input has started on a new editor.
 	@Override public void onStartInputView(EditorInfo info, boolean restarting)
 	{
-		if(myView2!=null)
-			myView2.startCKB(info);
+		if(myView!=null)
+			myView.startCKB(info);
 		setExtractViewShown(false);
 	}
 
@@ -169,31 +168,31 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 			boolean success=true;
 			switch(flags)
 			{
-			case CKBview2.CC_CURSOR://TODO: try to send shift down, arrows, shift up
+			case CKBview3.CC_CURSOR://TODO: try to send shift down, arrows, shift up
 				switch(key)
 				{
-				case CKBview2.SK_LEFT:
+				case CKBview3.MODMASK|CKBview3.KEY_LEFT:
 					for(int k=0;k<count;++k)
 					{
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_LEFT));
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_LEFT));
 					}
 					break;
-				case CKBview2.SK_RIGHT:
+				case CKBview3.MODMASK|CKBview3.KEY_RIGHT:
 					for(int k=0;k<count;++k)
 					{
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_RIGHT));
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_RIGHT));
 					}
 					break;
-				case CKBview2.SK_UP:
+				case CKBview3.MODMASK|CKBview3.KEY_UP:
 					for(int k=0;k<count;++k)
 					{
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_UP));
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_UP));
 					}
 					break;
-				case CKBview2.SK_DOWN:
+				case CKBview3.MODMASK|CKBview3.KEY_DOWN:
 					for(int k=0;k<count;++k)
 					{
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_DOWN));
@@ -202,32 +201,32 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 					break;
 				}
 				break;
-			case CKBview2.CC_SEL_END:
-				success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_SHIFT_LEFT));
+			case CKBview3.CC_SEL_END:
+				success=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_SHIFT_LEFT));
 				switch(key)
 				{
-				case CKBview2.SK_LEFT:
+				case CKBview3.MODMASK|CKBview3.KEY_LEFT:
 					for(int k=0;k<count;++k)
 					{
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_LEFT));
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_LEFT));
 					}
 					break;
-				case CKBview2.SK_RIGHT:
+				case CKBview3.MODMASK|CKBview3.KEY_RIGHT:
 					for(int k=0;k<count;++k)
 					{
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_RIGHT));
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_RIGHT));
 					}
 					break;
-				case CKBview2.SK_UP:
+				case CKBview3.MODMASK|CKBview3.KEY_UP:
 					for(int k=0;k<count;++k)
 					{
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_UP));
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_UP));
 					}
 					break;
-				case CKBview2.SK_DOWN:
+				case CKBview3.MODMASK|CKBview3.KEY_DOWN:
 					for(int k=0;k<count;++k)
 					{
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_DOWN));
@@ -238,27 +237,27 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 				success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SHIFT_LEFT));
 			/*	switch(key)
 				{
-				case CKBview2.SK_LEFT:
+				case CKBview3.SK_LEFT:
 					end-=count;
 					if(end<0)
 						end=0;
 					break;
-				case CKBview2.SK_RIGHT:
+				case CKBview3.SK_RIGHT:
 					end+=count;
 					if(end>length)
 						end=length;
 					break;
-				case CKBview2.SK_UP:
+				case CKBview3.SK_UP:
 					for(int k=0;k<count;++k)
 						end=moveUp(text, end);
 					break;
-				case CKBview2.SK_DOWN:
+				case CKBview3.SK_DOWN:
 					for(int k=0;k<count;++k)
 						end=moveDown(text, end);
 					break;
 				}//*/
 				break;
-			case CKBview2.CC_SEL_START://doesn't work	//TODO: arrows(count), setSelection()
+			case CKBview3.CC_SEL_START://doesn't work	//TODO: arrows(count), setSelection()
 				ExtractedText exText=inCon.getExtractedText(new ExtractedTextRequest(), 0);
 				if(exText==null)
 					throw new Exception("onNavigateCallback(): text == null");
@@ -267,26 +266,26 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 				//int start=text.startOffset+text.selectionStart, end=text.startOffset+text.selectionEnd, length=text.text.length();
 				switch(key)
 				{
-				case CKBview2.SK_LEFT:
+				case CKBview3.MODMASK|CKBview3.KEY_LEFT:
 					start-=count;
 					if(start<0)
 						start=0;
 					break;
-				case CKBview2.SK_RIGHT:
+				case CKBview3.MODMASK|CKBview3.KEY_RIGHT:
 					start+=count;
 					if(start>length)
 						start=length;
 					break;
-				case CKBview2.SK_UP:
+				case CKBview3.MODMASK|CKBview3.KEY_UP:
 					for(int k=0;k<count;++k)
 						start=moveUp(text, start);
 					break;
-				case CKBview2.SK_DOWN:
+				case CKBview3.MODMASK|CKBview3.KEY_DOWN:
 					for(int k=0;k<count;++k)
 						start=moveDown(text, start);
 					break;
 				}
-				success&=inCon.setSelection(start, end);
+				success=inCon.setSelection(start, end);
 				break;
 			}
 			if(!success)
@@ -294,7 +293,7 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 		}
 		catch(Exception e)
 		{
-			Log.e(CKBview2.TAG, e.getMessage());
+			Log.e(CKBview3.TAG, e.getMessage());
 		}
 	}
 	public void onKeyCallback(int key, int flags)//flags: {bit1 "2": up, bit0 "1": down}
@@ -302,33 +301,33 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 		InputConnection inCon=getCurrentInputConnection();
 		if(inCon!=null)
 		{
-			CharSequence selection;
+			//CharSequence selection;
 			switch(key)
 			{
-			case CKBview2.SK_ENTER:
+			case '\n':
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER));
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER));
 				break;
-			case CKBview2.SK_BACKSPACE:
+			case '\b':
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL));
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL));
 				break;
-			case CKBview2.SK_DELETE:
+			case 127:
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_FORWARD_DEL));
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_FORWARD_DEL));
 				break;
-			case CKBview2.SK_INSERT:
+			case CKBview3.MODMASK|CKBview3.KEY_INSERT:
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_INSERT));
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_INSERT));
 				break;
-			case CKBview2.SK_CAPS_LOCK:
-				myView2.isActive_shift=!myView2.isActive_shift;
-				myView2.kb.toggleShift();
+			case CKBview3.MODMASK|CKBview3.KEY_CAPSLOCK:
+				myView.isActive_shift=!myView.isActive_shift;
 				break;
-			case CKBview2.SK_SHIFT://TODO: separate ACTION_DOWN (long press) & ACTION_UP, short press is normal
-				if(flags==3)
-					myView2.kb.toggleShift();
-				else
+			case CKBview3.MODMASK|CKBview3.KEY_SHIFT://TODO: separate ACTION_DOWN (long press) & ACTION_UP, short press is normal
+				//if(flags==3)
+				//	myView.kb.toggleShift();
+				//else
+				if(flags!=3)
 				{
 					if((flags&1)!=0)
 						inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_CAPS_LOCK));
@@ -336,25 +335,25 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 						inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_CAPS_LOCK));
 				}
 				break;
-			case CKBview2.SK_CTRL:
-				myView2.isActive_ctrl=!myView2.isActive_ctrl;
-				if(myView2.isActive_ctrl)//does nothing
+			case CKBview3.MODMASK|CKBview3.KEY_CTRL:
+				myView.isActive_ctrl=!myView.isActive_ctrl;
+				if(myView.isActive_ctrl)//does nothing
 					inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_CTRL_LEFT));
 				else
 					inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_CTRL_LEFT));
 				break;
-			case CKBview2.SK_ALT:
-				myView2.isActive_alt=!myView2.isActive_alt;
-				if(myView2.isActive_alt)//does nothing
+			case CKBview3.MODMASK|CKBview3.KEY_ALT:
+				myView.isActive_alt=!myView.isActive_alt;
+				if(myView.isActive_alt)//does nothing
 					inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_LEFT));
 				else
 					inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_LEFT));
 				break;
-			case CKBview2.SK_HOME://sending ctrl down, home, ctrl up doesn't work
-				if(myView2.isActive_ctrl)//ctrl home
+			case CKBview3.MODMASK|CKBview3.KEY_HOME://FIXME sending ctrl down, home, ctrl up doesn't work
+				if(myView.isActive_ctrl)//ctrl home
 				{
 					inCon.setSelection(0, 0);
-					myView2.isActive_ctrl=false;
+					myView.isActive_ctrl=false;
 				}
 				else
 				{
@@ -362,8 +361,8 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 					inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MOVE_HOME));
 				}
 				break;
-			case CKBview2.SK_END:
-				if(myView2.isActive_ctrl)//ctrl end
+			case CKBview3.MODMASK|CKBview3.KEY_END:
+				if(myView.isActive_ctrl)//ctrl end
 				{
 					ExtractedText exText=inCon.getExtractedText(new ExtractedTextRequest(), 0);
 					if(exText==null)
@@ -372,7 +371,7 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 					{
 						int length=exText.text.length();
 						inCon.setSelection(length, length);
-						myView2.isActive_ctrl=false;
+						myView.isActive_ctrl=false;
 					}
 				}
 				else
@@ -381,66 +380,68 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 					inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MOVE_END));
 				}
 				break;
-			case CKBview2.SK_PGUP:
+			case CKBview3.MODMASK|CKBview3.KEY_PGUP:
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_PAGE_UP));
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_PAGE_UP));
 				break;
-			case CKBview2.SK_PGDN:
+			case CKBview3.MODMASK|CKBview3.KEY_PGDN:
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_PAGE_DOWN));
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_PAGE_DOWN));
 				break;
-			case CKBview2.SK_F1:case CKBview2.SK_F2:case CKBview2.SK_F3:case CKBview2.SK_F4:
-			case CKBview2.SK_F5:case CKBview2.SK_F6:case CKBview2.SK_F7:case CKBview2.SK_F8:
-			case CKBview2.SK_F9:case CKBview2.SK_F10:case CKBview2.SK_F11:case CKBview2.SK_F12:
-				int functionKey=KeyEvent.KEYCODE_F1+key-CKBview2.SK_F1;
+			case CKBview3.MODMASK|CKBview3.KEY_F1:case CKBview3.MODMASK|CKBview3.KEY_F2:case CKBview3.MODMASK|CKBview3.KEY_F3:case CKBview3.MODMASK|CKBview3.KEY_F4:
+			case CKBview3.MODMASK|CKBview3.KEY_F5:case CKBview3.MODMASK|CKBview3.KEY_F6:case CKBview3.MODMASK|CKBview3.KEY_F7:case CKBview3.MODMASK|CKBview3.KEY_F8:
+			case CKBview3.MODMASK|CKBview3.KEY_F9:case CKBview3.MODMASK|CKBview3.KEY_F10:case CKBview3.MODMASK|CKBview3.KEY_F11:case CKBview3.MODMASK|CKBview3.KEY_F12:
+				int functionKey=KeyEvent.KEYCODE_F1+(key&~CKBview3.MODMASK)-CKBview3.KEY_F1;
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, functionKey));
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, functionKey));
 				break;
-			case CKBview2.SK_PRINTSCREEN://does nothing
+			case CKBview3.MODMASK|CKBview3.KEY_PRINTSCREEN://does nothing
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_SYSRQ));
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SYSRQ));
 				break;
-			case CKBview2.SK_PAUSE://useless: this is sent to an EditText
+			case CKBview3.MODMASK|CKBview3.KEY_PAUSE://useless: this is sent to an EditText
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE));
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE));
 				break;
-			case CKBview2.SK_NUM_LOCK:
+			case CKBview3.MODMASK|CKBview3.KEY_NUMLOCK:
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_NUM_LOCK));
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_NUM_LOCK));
 				break;
-			case CKBview2.SK_SCROLL_LOCK:
+			case CKBview3.MODMASK|CKBview3.KEY_SCROLLLOCK:
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_SCROLL_LOCK));
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SCROLL_LOCK));
 				break;
-			case CKBview2.SK_LEFT:
+			case CKBview3.MODMASK|CKBview3.KEY_LEFT:
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_LEFT));
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_LEFT));
 				break;
-			case CKBview2.SK_RIGHT:
+			case CKBview3.MODMASK|CKBview3.KEY_RIGHT:
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_RIGHT));
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_RIGHT));
 				break;
-			case CKBview2.SK_UP:
+			case CKBview3.MODMASK|CKBview3.KEY_UP:
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_UP));
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_UP));
 				break;
-			case CKBview2.SK_DOWN:
+			case CKBview3.MODMASK|CKBview3.KEY_DOWN:
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_DOWN));
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_DOWN));
 				break;
 
-			case CKBview2.SK_STD:
-			case CKBview2.SK_SYM:
-			case CKBview2.SK_ALL:
-			case CKBview2.SK_SPK:
-			case CKBview2.SK_FUN:
+			case CKBview3.MODMASK|CKBview3.KEY_LAYOUT:
+			//case CKBview3.SK_STD:
+			//case CKBview3.SK_SYM:
+			//case CKBview3.SK_ALL:
+			//case CKBview3.SK_SPK:
+			//case CKBview3.SK_FUN:
 				if((flags&1)!=0)
-					myView2.kb.selectLayout(key);
+					myView.switchLayout();
+				//	myView.kb.selectLayout(key);
 				break;
-			case CKBview2.SK_TRANSPARENT:
-				transparent=!transparent;
-				break;
-			case CKBview2.SK_SETTINGS://TODO: keyboard settings activity (unicode search, layout customization, color theme)
+			//case CKBview3.MODMASK|CKBview3.KEY_TRANSPARENT:
+			//	transparent=!transparent;
+			//	break;
+			case CKBview3.MODMASK|CKBview3.KEY_SETTINGS://TODO: keyboard settings activity (unicode search, layout customization, color theme)
 				{
 					//Intent intent=new Intent(this, SettingsActivity.class);
 					Intent intent=new Intent(this, CKBactivity.class);//https://developer.android.com/training/basics/firstapp/starting-activity
@@ -450,14 +451,14 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 					startActivity(intent);
 				}
 				break;
-			case CKBview2.SK_UNICODE:
-				//TODO: extended unicode layout (scrollable)
-				break;
-			case CKBview2.SK_NAB:
+			//case CKBview3.MODMASK|CKBview3.KEY_UNICODE:
+			//	//TODO: extended unicode layout (scrollable)
+			//	break;
+			case CKBview3.MODMASK|CKBview3.KEY_NAB:
 				//should be empty
 				break;
 			case 'A':case 'a':
-				if(myView2.isActive_ctrl)
+				if(myView.isActive_ctrl)
 				{
 					ExtractedText exText=inCon.getExtractedText(new ExtractedTextRequest(), 0);
 					if(exText==null)
@@ -466,31 +467,31 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 					{
 						int length=exText.text.length();
 						inCon.setSelection(0, length);
-						myView2.isActive_ctrl=false;
+						myView.isActive_ctrl=false;
 					}
 				}
 				else
 					sendAsIs(key, inCon);
 				break;
 			case 'C':case 'c':
-				if(myView2.isActive_ctrl)
+				if(myView.isActive_ctrl)
 				{
-					boolean success=true;
+					boolean success;
 					if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.N)//TODO: test this
 					{
-						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_COPY));
+						success=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_COPY));
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_COPY));
 					}
 					else
-						success&=copySelectionToClipboardLoud(inCon);
+						success=copySelectionToClipboardLoud(inCon);
 					if(success)
-						myView2.isActive_ctrl=false;
+						myView.isActive_ctrl=false;
 				}
 				else
 					sendAsIs(key, inCon);
 				break;
 			case 'V':case 'v':
-				if(myView2.isActive_ctrl)
+				if(myView.isActive_ctrl)
 				{
 					ClipboardManager clipboard=(ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
 					if(clipboard==null)
@@ -512,26 +513,26 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 					}
 					inCon.commitText(str, str.length());
 				//	displayToast("Pasted from clipboard");
-					myView2.isActive_ctrl=false;
+					myView.isActive_ctrl=false;
 				}
 				else
 					sendAsIs(key, inCon);
 				break;
 			case 'X':case 'x':
-				if(myView2.isActive_ctrl)
+				if(myView.isActive_ctrl)
 				{
-					boolean success=true;
+					boolean success;
 					if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.N)//TODO: test this
 					{
-						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_COPY));
+						success=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_COPY));
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_COPY));
 					}
 					else
-						success&=copySelectionToClipboardLoud(inCon);
+						success=copySelectionToClipboardLoud(inCon);
 					if(success)
 					{
 						inCon.commitText("", 1);
-						myView2.isActive_ctrl=false;
+						myView.isActive_ctrl=false;
 					}
 				}
 				else
@@ -577,6 +578,10 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 	{
 		if(key>=0&&key<0x110000)
 		{
+			if(myView.isActive_shift)
+				key=Character.toUpperCase(key);
+			else
+				key=Character.toLowerCase(key);
 			CharSequence cs=CharBuffer.wrap(Character.toChars(key));
 			inCon.commitText(cs, cs.length());
 		}
