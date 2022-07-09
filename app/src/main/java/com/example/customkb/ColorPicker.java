@@ -475,7 +475,7 @@ public class ColorPicker extends ViewGroup
 	int hit_idx=OBJ_COUNT;
 	boolean hitTest(Rect r, TouchInfo.Pointer p)
 	{
-		return p.x>=r.left&&p.x<r.right&&p.y>=r.top&&p.y<r.bottom;
+		return p.startx>=r.left&&p.startx<r.right&&p.starty>=r.top&&p.starty<r.bottom;
 	}
 	float clamp0(float x, float hi)
 	{

@@ -329,8 +329,6 @@ public class CKBSettings extends ViewGroup
 		fastThreshold=Math.max(h/20, 1);//109
 		fastSpeed=Math.max(h/60, 1);//36
 		slowSpeed=Math.max(h/300, 1);//7
-		//fastSpeed=Math.max(h/80, 1);
-		//slowSpeed=Math.max(h/350, 1);
 		Log.e(TAG, String.format("threshold=%d, fast=%d, slow=%d", fastThreshold, fastSpeed, slowSpeed));
 		setTestVisibility(INVISIBLE);
 		scroll_y=0;

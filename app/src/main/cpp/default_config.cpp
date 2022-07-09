@@ -21,8 +21,8 @@ Syntax:
 layout [lang] layout_name
 portrait <relative_height>{
 	<button_code> <button_width>, ...;
-	//buttons are seprated by comma
-	//each row ends with semicolon
+	//buttons are separated by commas
+	//each row ends with a semicolon
 }
 landscape <relative_height>{
 	//each layout should have both orientations

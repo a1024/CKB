@@ -23,7 +23,7 @@ import androidx.appcompat.app.AppCompatActivity;
 public class CKBactivity extends AppCompatActivity
 {
 	//public static final String TAG="customkb";
-	CKBSettings settingsView=null;
+	CKBsettings2 settingsView=null;
 	@Override protected void onCreate(Bundle savedInstanceState)//called on switch orientation too
 	{
 		super.onCreate(savedInstanceState);
@@ -31,7 +31,7 @@ public class CKBactivity extends AppCompatActivity
 
 		if(settingsView==null)
 		{
-			settingsView=new CKBSettings(this);
+			settingsView=new CKBsettings2(this);
 			settingsView.activity=this;
 		}
 		settingsView.setDimensions();

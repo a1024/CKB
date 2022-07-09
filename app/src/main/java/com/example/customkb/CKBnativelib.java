@@ -6,6 +6,7 @@ public class CKBnativelib
 	{
 		System.loadLibrary("ckb");
 	}
+	//ckb.c
 	public static native int init(int mode, int decnumpad, int width, int height);//returns nRows in current layout
 	public static native void finish();
 	public static native int getKbHeight();
@@ -20,4 +21,9 @@ public class CKBnativelib
 
 	public static native int getNErrors();
 	public static native String getError(int errorIdx);
+
+
+	//settings.c
+	public static native int settingsInit(int width, int height);
+	public static native void settingsFinish();
 }

@@ -17,11 +17,6 @@ static const char file[]=__FILE__;
 const char statefn[]="/data/data/com.example.customkb/state.txt";//UPDATE AT RELEASE
 const char tempfn[]="/data/data/com.example.customkb/temp.txt";
 const char log_tag[]="customkb";
-#ifdef __cplusplus
-#define EXTERN_C	extern "C"
-#else
-#define EXTERN_C
-#endif
 
 #define 	G_BUF_SIZE	1024
 char 		g_buf[G_BUF_SIZE]={0};

@@ -17,6 +17,11 @@
 extern const char log_tag[];
 #define		LOGI(...)  __android_log_print(ANDROID_LOG_INFO, log_tag, ##__VA_ARGS__)
 #define		LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, log_tag, ##__VA_ARGS__)
+#ifdef __cplusplus
+#define EXTERN_C	extern "C"
+#else
+#define EXTERN_C
+#endif
 #endif
 #include<stddef.h>
 
