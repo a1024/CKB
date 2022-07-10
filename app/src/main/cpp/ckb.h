@@ -12,7 +12,7 @@ typedef enum KeyTypeEnum
 #define		CKBKEY(FLAG, DESCRIPTION)		FLAG,
 #include	"ckb_keys.h"
 #undef		CKBKEY
-	KEY_COUNT,
+	//KEY_COUNT,
 } KeyType;
 typedef enum ModKeyTypeEnum
 {
@@ -100,7 +100,7 @@ typedef struct GlobalsStruct
 
 extern Globals *glob;
 extern ArrayHandle errors;
-extern int	nerrors;
+extern int	nErrors;
 
 void		free_row(void *data);
 void		free_layout(void *data);

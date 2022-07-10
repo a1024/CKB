@@ -2,6 +2,9 @@
 // Created by MSI on 2022-07-02.
 //
 
+//EDIT THIS FILE OUTSIDE ANDROID STUDIO
+//because Android studio handles Unicode and RTL languages in a confusing way
+
 //this information is only for creation of state file for first time or at reset all layouts
 //layout order is identical to enum LayoutIdx
 //capitalization (shift/capslock) is done procedurally on all unicode characters
@@ -12,8 +15,8 @@
 
 //when user writes to state file (creates new layouts, ...etc) write to temp file first
 //when user saves changes, if temp file passes all checks overwrite state file
-extern "C" const char default_config[]=
-R"config(/*
+extern "C" const char default_config[]=R"config(
+/*
 Welcome to CustomKB!
 This file defines the keyboard layouts.
 
@@ -107,16 +110,31 @@ layout 1, nab 0.75, 'z' 1, 'x' 1, 'c' 1, 'v' 1, 'b' 1, nab 0.25, ' ' 3, '1' 1, '
 layout lang ar
 portrait 0.36{//0.384
 27 1, '\t' 1, caps 1, ctrl 1, alt 1, home 1, end 1, pgup 1, pgdn 1, 127 1;
-0x0661 1, 0x0662 1, 0x0663 1, 0x0664 1, 0x0665 1, 0x0666 1, 0x0667 1, 0x0668 1, 0x0669 1, 0x0660 1;
-0x0636 1, 0x0635 1, 0x062B 1, 0x0642 1, 0x0641 1, 0x063A 1, 0x0639 1, 0x0647 1, 0x062E 1, 0x062D 1, 0x062C 1;
-0x0634 1, 0x0633 1, 0x064A 1, 0x0628 1, 0x0644 1, 0x0627 1, 0x062A 1, 0x0646 1, 0x0645 1, 0x0643 1, 0x0637 1;
-0x0630 1, 0x0621 1, 0x0624 1, 0x0631 1, 0x0649 1, 0x0629 1, 0x0648 1, 0x0632 1, 0x0638 1, 0x062F 1, '\b' 1;
-layout 1.25, settings 1.25, ' ' 4, 0x060C 1, '.' 1, '\n' 1.5;
+'١' 1, '٢' 1, '٣' 1, '٤' 1, '٥' 1, '٦' 1, '٧' 1, '٨' 1, '٩' 1, '٠' 1;
+'ض' 1, 'ص' 1, 'ث' 1, 'ق' 1, 'ف' 1, 'غ' 1, 'ع' 1, 'ه' 1, 'خ' 1, 'ح' 1, 'ج' 1;
+'ش' 1, 'س' 1, 'ي' 1, 'ب' 1, 'ل' 1, 'ا' 1, 'ت' 1, 'ن' 1, 'م' 1, 'ك' 1, 'ط' 1;
+'ذ' 1, 'ء' 1, 'ؤ' 1, 'ر' 1, 'ى' 1, 'ة' 1, 'و' 1, 'ز' 1, 'ظ' 1, 'د' 1, '\b' 1;
+layout 1.25, settings 1.25, ' ' 4, '،' 1, '.' 1, '\n' 1.5;
 }
 landscape 0.32{
-nab 2/3,			0x0636 1, 0x0635 1, 0x062B 1, 0x0642 1, 0x0641 1, 0x063A 1, nab 1/3,	27 1, home 1, end 1,	0x0667 1, 0x0668 1, 0x0669 1, 0x0660 1, nab 1,		0x0639 1, 0x0647 1, 0x062E 1, 0x062D 1, 0x062C 1;
-settings 1,			0x0634 1, 0x0633 1, 0x064A 1, 0x0628 1, 0x0644 1, 0x0627 1,				'\t' 1, ctrl 1, alt 1,	0x0664 1, 0x0665 1, 0x0666 1, 0x060C 1, nab 1/3,	0x062A 1, 0x0646 1, 0x0645 1, 0x0643 1, 0x0637 1, nab 2/3;
-layout 1, nab 0.25, 0x0630 1, 0x0621 1, 0x0624 1, 0x0631 1, 0x0649 1, nab 0.75,				' ' 3,					0x0661 1, 0x0662 1, 0x0663 1, '.' 1,				0x0629 1, 0x0648 1, 0x0632 1, 0x0638 1, '\b' 1, '\n' 1;
+nab 2/3,			'ض' 1, 'ص' 1, 'ث' 1, 'ق' 1, 'ف' 1, 'غ' 1, nab 1/3,	27 1, home 1, end 1,	'٧' 1, '٨' 1, '٩' 1, '٠' 1, nab 1,		'ع' 1, 'ه' 1, 'خ' 1, 'ح' 1, 'ج' 1;
+settings 1,			'ش' 1, 'س' 1, 'ي' 1, 'ب' 1, 'ل' 1, 'ا' 1,			'\t' 1, ctrl 1, alt 1,	'٤' 1, '٥' 1, '٦' 1, '،' 1, nab 1/3,	'ت' 1, 'ن' 1, 'م' 1, 'ك' 1, 'ط' 1, nab 2/3;
+layout 1, nab 0.25, 'ذ' 1, 'ء' 1, 'ؤ' 1, 'ر' 1, 'ى' 1, nab 0.75,		' ' 3,					'١' 1, '٢' 1, '٣' 1, '.' 1,				'ة' 1, 'و' 1, 'ز' 1, 'ظ' 1, '\b' 1, '\n' 1;
+}
+
+layout lang ru
+portrait 0.36{//0.384
+27 1, '\t' 1, caps 1, ctrl 1, alt 1, home 1, end 1, pgup 1, pgdn 1, 127 1;
+'1' 1, '2' 1, '3' 1, '4' 1, '5' 1, '6' 1, '7' 1, '8' 1, '9' 1, '0' 1;
+'й' 1, 'ц' 1, 'у' 1, 'к' 1, 'е' 1, 'н' 1, 'г' 1, 'ш' 1, 'щ' 1, 'з' 1, 'х' 1;
+'ф' 1, 'ы' 1, 'в' 1, 'а' 1, 'п' 1, 'р' 1, 'о' 1, 'л' 1, 'д' 1, 'ж' 1, 'э' 1;
+shift 1, 'я' 1, 'ч' 1, 'с' 1, 'м' 1, 'и' 1, 'т' 1, 'ь' 1, 'б' 1, 'ю' 1, '\b' 1;
+layout 1, settings 1, 'ё' 1, ' ' 4, 'ъ' 1, '.' 1, '\n' 1;
+}
+landscape 0.32{
+settings 1,			'й' 1, 'ц' 1, 'у' 1, 'к' 1, 'е' 1, 'ё' 1, 'н' 1,	27 1, home 1, end 1,	'7' 1, '8' 1, '9' 1, '0' 1,				'г' 1, 'ш' 1, 'щ' 1, 'з' 1, 'х' 1, 'ъ' 1;
+shift 1, nab 1/3,	'ф' 1, 'ы' 1, 'в' 1, 'а' 1, 'п' 1, 'р' 1, nab 2/3,	'\t' 1, ctrl 1, alt 1,	'4' 1, '5' 1, '6' 1, ',' 1, nab 1/3,	'о' 1, 'л' 1, 'д' 1, 'ж' 1, 'э' 1, nab 2/3;
+layout 1, nab 0.75,	'я' 1, 'ч' 1, 'с' 1, 'м' 1, 'и' 1, nab 0.25,		' ' 3,					'1' 1, '2' 1, '3' 1, '.' 1, nab 0.75,	'т' 1, 'ь' 1, 'б' 1, 'ю' 1, nab 0.25, '\b' 1, '\n' 1;
 }
 
 layout url en

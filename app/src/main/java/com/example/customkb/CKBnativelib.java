@@ -6,6 +6,8 @@ public class CKBnativelib
 	{
 		System.loadLibrary("ckb");
 	}
+	//TODO unicode config to describe layouts with native characters
+
 	//ckb.c
 	public static native int init(int mode, int decnumpad, int width, int height);//returns nRows in current layout
 	public static native void finish();

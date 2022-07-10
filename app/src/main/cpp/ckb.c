@@ -11,10 +11,11 @@
 #include<errno.h>
 static const char file[]=__FILE__;
 
-	#define DEBUG_LANG
+//	#define DEBUG_ERROR
+//	#define DEBUG_LANG
 //	#define DEBUG_HEAP
 //	#define ALWAYS_RESET//don't use this macro, just press reset in settings
-//	#define STORE_ERRORS
+	#define STORE_ERRORS
 
 const char stateFilename[]="/data/data/com.example.customkb/state.txt";//TODO UPDATE AT RELEASE
 const char log_tag[]="customkb";
@@ -47,21 +48,7 @@ const char *mcodes[]=
 
 Globals		*glob=0;
 ArrayHandle	errors=0;
-int			nerrors=0;
-//JavaVM		*jvm=0;
-
-int 		glob_alloc()
-{
-	if(!glob)
-	{
-		glob=(Globals*)malloc(sizeof(Globals));
-		if(!glob)
-			return 0;//alloc error
-		memset(glob, 0, sizeof(Globals));
-		return 1;//new allocation
-	}
-	return 2;//already allocated
-}
+int			nErrors=0;
 
 void		free_row(void *data)
 {
@@ -93,14 +80,28 @@ void		free_context(Context *ctx)
 	array_free(&ctx->defaultlang, 0);
 }
 
+int 		glob_alloc()
+{
+	if(!glob)
+	{
+		glob=(Globals*)malloc(sizeof(Globals));
+		if(!glob)
+			return 0;//alloc error
+		memset(glob, 0, sizeof(Globals));
+		return 1;//new allocation
+	}
+	return 2;//already allocated
+}
+
 int			log_error(const char *f, int line, const char *format, ...)
 {
 	va_list args;
+
 	int size=(int)strlen(f), start=size-1, printed=0;
 	for(;start>=0&&f[start]!='/'&&f[start]!='\\';--start);
 	start+=start==-1||f[start]=='/'||f[start]=='\\';
 
-	printed+=snprintf(g_buf+printed, G_BUF_SIZE-printed, "[%d] %s(%d): ", nerrors, f+start, line);
+	printed+=snprintf(g_buf+printed, G_BUF_SIZE-printed, "[%d] %s(%d): ", nErrors, f+start, line);
 	if(format)
 	{
 		va_start(args, format);
@@ -113,21 +114,26 @@ int			log_error(const char *f, int line, const char *format, ...)
 	LOGE("%s", g_buf);
 
 #ifdef STORE_ERRORS
+#ifdef DEBUG_ERROR
 	LOGE("errors == %p", errors);//
+#endif
 
 	if(!errors)
 		ARRAY_ALLOC(ArrayHandle, errors, 0, 0);
 	ArrayHandle *e=(ArrayHandle*)ARRAY_APPEND(errors, 0, 1, 1, 0);
+	STR_ALLOC(*e, 0);
 
+#ifdef DEBUG_ERROR
 	LOGE("e == %p", e);//
 	if(e)//
 		LOGE("*e == %p", *e);//
+#endif
 
 	array_assign(e, g_buf, printed+1);
 #endif
 
-	++nerrors;
-	return nerrors-1;
+	++nErrors;
+	return nErrors-1;
 }
 
 ArrayHandle	load_text(const char *filename)
@@ -135,7 +141,7 @@ ArrayHandle	load_text(const char *filename)
 	struct stat info={0};
 	FILE *f;
 	ArrayHandle ret;
-	size_t bytesread;
+	size_t bytesRead;
 
 	int error=stat(filename, &info);
 	if(error)
@@ -143,18 +149,18 @@ ArrayHandle	load_text(const char *filename)
 		LOG_ERROR("Cannot read %s, %d:%s", filename, error, strerror(error));
 		return 0;
 	}
-	f=fopen(filename, "r");
+	f=fopen(filename, "r,ccs=UTF-8");//'ccs=UTF-8' is non-standard
 	if(!f)
 	{
 		LOG_ERROR("Cannot read %s", filename);
 		return 0;
 	}
 	STR_ALLOC(ret, info.st_size);
-	bytesread=fread(ret->data, 1, info.st_size, f);
+	bytesRead=fread(ret->data, 1, info.st_size, f);
 	fclose(f);
-	ret->count=bytesread;
+	ret->count=bytesRead;
 	//array_fit(&ret, 1);
-	((char*)ret->data)[bytesread]='\0';
+	((char*)ret->data)[bytesRead]='\0';
 	return ret;
 }
 int 		save_text(const char *filename, const char *text, size_t len)
@@ -162,7 +168,7 @@ int 		save_text(const char *filename, const char *text, size_t len)
 	FILE *f;
 	int error;
 
-	f=fopen(filename, "w");
+	f=fopen(filename, "w,ccs=UTF-8");//'ccs=UTF-8' is non-standard
 	if(!f)
 	{
 		error=errno;
@@ -176,21 +182,21 @@ int 		save_text(const char *filename, const char *text, size_t len)
 
 int			find_layout_idx(LayoutType type, ArrayHandle lang)
 {
-	int nlayouts=(int)glob->ctx.layouts->count;
+	int nLayouts=(int)glob->ctx.layouts->count;
 	Layout *layout;
 
 	if(type==LAYOUT_LANG||type==LAYOUT_URL)
 	{
-		for(int kl=0;kl<nlayouts;++kl)
+		for(int kl=0;kl<nLayouts;++kl)
 		{
 			layout=(Layout*)array_at(&glob->ctx.layouts, kl);
-			if(layout->type==type&&!strcmp((char*)layout->lang->data, (char*)glob->ctx.defaultlang->data))
+			if(layout->type==type&&!strcmp((char*)layout->lang->data, (char*)lang->data))
 				return kl;
 		}
 	}
 	else
 	{
-		for(int kl=0;kl<nlayouts;++kl)
+		for(int kl=0;kl<nLayouts;++kl)
 		{
 			layout=(Layout*)array_at(&glob->ctx.layouts, kl);
 			if(layout->type==type)
@@ -199,9 +205,9 @@ int			find_layout_idx(LayoutType type, ArrayHandle lang)
 	}
 	return -1;
 }
-ArrayHandle	get_rows(int layoutidx)
+ArrayHandle	get_rows(int layoutIdx)
 {
-	Layout const *layout=(Layout const*)array_at(&glob->ctx.layouts, layoutidx);
+	Layout const *layout=(Layout const*)array_at(&glob->ctx.layouts, layoutIdx);
 	ArrayHandle rows;
 	if(glob->w<glob->h)//portrait
 		rows=layout->portrait;

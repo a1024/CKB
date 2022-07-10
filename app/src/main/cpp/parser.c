@@ -17,21 +17,29 @@ static const char file[]=__FILE__;
 #define 	G_BUF_SIZE	1024
 extern char g_buf[G_BUF_SIZE];//used by log_error()
 
-static int	get_lineno(const char *text, int k)
+static int	get_lineNo(const char *text, int k, int *ret_lineStart)
 {
-	int lineno=0;
-	for(int k2=0;k2<k;lineno+=text[k2]=='\n', ++k2);
-	return lineno;
+	int lineNo=0, lineStart=0;
+	for(int k2=0;k2<k;lineNo+=text[k2]=='\n', ++k2)
+	{
+		if(text[k2]=='\n')
+			lineStart=k2;
+	}
+	if(ret_lineStart)
+		*ret_lineStart=lineStart;
+	return lineNo;
 }
 static int	parse_error(const char *text, int k, const char *msg)
 {
-	int lineno=get_lineno(text, k);
+	int lineNo, lineStart;
+
+	lineNo=get_lineNo(text, k, &lineStart);
 #ifdef _MSC_VER
-	LOGE("Config error line %d: %s\n", lineno+1, msg);
+	LOGE("Config(%d:%d) %s\n", lineNo+1, k-lineStart, msg);
 #else
-	log_error("config", lineno+1, "%s", msg);
+	log_error("config", lineNo+1, "col %d: %s", k-lineStart, msg);
 #endif
-	++nerrors;
+	++nErrors;
 	return 0;
 }
 static int	skip_ws(const char *text, size_t text_len, int *k)
@@ -78,7 +86,7 @@ static int	skip_ws(const char *text, size_t text_len, int *k)
 #endif
 	return *k>=(int)text_len;
 }
-static int	acme_strcmp_ascii_ci(const char *text, size_t text_len, int *k, const char *kw)//returns zero on match, otherwise which string comes first alphabetically
+static int	acme_strCmp_ascii_ci(const char *text, size_t text_len, int *k, const char *kw)//returns zero on match, otherwise which string comes first alphabetically
 {
 	int match=0;
 	for(int k2=0;kw[k2];++*k, ++k2)
@@ -105,7 +113,7 @@ static int	get_id(const char *text, size_t text_len, int k)//returns length of i
 	}
 	return end-k;
 }
-static int	memcmp_ascii_ci(const char *text, const char *kw)//returns length of keyword on match, otherwise zero
+static int	memCmp_ascii_ci(const char *text, const char *kw)//returns length of keyword on match, otherwise zero
 {
 	int k=0;
 	for(;*text&&*kw&&tolower(*text)==tolower(*kw);++text, ++kw, ++k);
@@ -113,7 +121,7 @@ static int	memcmp_ascii_ci(const char *text, const char *kw)//returns length of 
 		return 0;
 	return k;
 }
-static int	parse_langname(const char *text, size_t text_len, int *k, ArrayHandle *lang)
+static int	parse_langName(const char *text, size_t text_len, int *k, ArrayHandle *lang)
 {
 	if(skip_ws(text, text_len, k))
 		return parse_error(text, *k, "Expected language type");
@@ -123,19 +131,19 @@ static int	parse_langname(const char *text, size_t text_len, int *k, ArrayHandle
 	*k+=len;
 	return 1;
 }
-static long long read_int(const char *text, size_t text_len, int *k, int base, int *ret_ndigits)//ret_ndigits: if a variable is provided, a non-zero digit limit can be provided
+static long long read_int(const char *text, size_t text_len, int *k, int base, int *ret_nDigits)//ret_nDigits: if a variable is provided, a non-zero digit limit can be provided
 {
 	long long val;
-	int ndigits, limit, end;
+	int nDigits, limit, end;
 	unsigned char c;
 
 	val=0;
-	ndigits=0;
+	nDigits=0;
 	limit=base<10?base:10;
 	end=(int)text_len;
-	if(ret_ndigits&&*ret_ndigits&&*k+*ret_ndigits<end)
-		end=*k+*ret_ndigits;
-	for(;*k<end;++*k, ++ndigits)
+	if(ret_nDigits&&*ret_nDigits&&*k+*ret_nDigits<end)
+		end=*k+*ret_nDigits;
+	for(;*k<end;++*k, ++nDigits)
 	{
 		c=text[*k]-'0';
 		if(c<limit)
@@ -154,23 +162,23 @@ static long long read_int(const char *text, size_t text_len, int *k, int base, i
 		else
 			break;
 	}
-	if(ret_ndigits)
-		*ret_ndigits=ndigits;
+	if(ret_nDigits)
+		*ret_nDigits=nDigits;
 	return val;
 }
 static float read_float(const char *text, size_t text_len, int *k)
 {
 	float val;
 	long long temp;
-	int ndigits;
+	int nDigits;
 
 	val=(float)read_int(text, text_len, k, 10, 0);
 	if(text[*k]=='.')
 	{
 		++*k;
-		ndigits=0;
-		temp=read_int(text, text_len, k, 10, &ndigits);
-		val+=(float)temp*powf(10, -(float)ndigits);
+		nDigits=0;
+		temp=read_int(text, text_len, k, 10, &nDigits);
+		val+=(float)temp*powf(10, -(float)nDigits);
 	}
 	return val;
 }
@@ -195,17 +203,69 @@ static int	read_fraction(const char *text, size_t text_len, int *k, float *ret_v
 	}
 	return 1;
 }
+static int	utf8ToCodepoint(const char *in, size_t text_len, int *k)
+{
+	char c, c2, c3, c4;
+
+	c=in[*k];
+	if(!(c&0x80))//binary 0*******		Note: c>=0 doesn't work here
+	{
+		++*k;
+		return c;
+	}
+	if((c&0xE0)==0xC0)//binary 110*****, 10******
+	{
+		if(*k+1>=text_len)
+		{
+			LOG_ERROR("Invalid UTF-8 sequence: 0x%02X\n", (int)c);
+			return '?';
+		}
+		c2=in[*k+1];
+		*k+=2;
+		if((c2&0xC0)==0x80)
+			return (c&0x1F)<<6|(c2&0x3F);
+		LOG_ERROR("Invalid UTF-8 sequence: 0x%02X-%02X\n", (int)c, (int)c2);
+		return '?';
+	}
+	if((c&0xF0)==0xE0)//binary 1110****, 10******, 10******
+	{
+		if(*k+2>=text_len)
+		{
+			LOG_ERROR("Invalid UTF-8 sequence: 0x%02X\n", (int)c);
+			return '?';
+		}
+		c2=in[*k+1], c3=in[*k+2];
+		*k+=3;
+		if((c2&0xC0)==0x80&&(c3&0xC0)==0x80)
+			return (c&0x0F)<<12|(c2&0x3F)<<6|(c3&0x3F);
+		LOG_ERROR("Invalid UTF-8 sequence: 0x%02X-%02X-%02X\n", (int)c, (int)c2, (int)c3);
+		return '?';
+	}
+	if((c&0xF8)==0xF0)//binary 11110***, 10******, 10******, 10******
+	{
+		if(*k+3>=text_len)
+		{
+			LOG_ERROR("Invalid UTF-8 sequence: 0x%02X\n", (int)c);
+			return '?';
+		}
+		c2=in[*k+1], c3=in[*k+2], c4=in[*k+3];
+		*k+=4;
+		if((c2&0xC0)==0x80&&(c3&0xC0)==0x80&&(c4&0xC0)==0x80)
+			return (c&0x07)<<18|(c2&0x3F)<<12|(c3&0x3F)<<6|(c4&0x3F);
+		LOG_ERROR("Invalid UTF-8 sequence: 0x%02X-%02X-%02X-%02X\n", (int)c, (int)c2, (int)c3, (int)c4);
+		return '?';
+	}
+	LOG_ERROR("Invalid UTF-8 sequence: 0x%02X\n", (int)c);
+	return '?';
+}
 static int	esc2codepoint(const char *text, size_t text_len, int *k)//one escape sequence -> code point
 {
-	int code, ndigits;
+	int code, nDigits;
 
 	if(text[*k]!='\\')
-	{
-		code=(unsigned char)text[*k];
-		++*k;
-		return code;
-	}
-	++*k;
+		return utf8ToCodepoint(text, text_len, k);
+
+	++*k;//skip '\\'
 	switch(text[*k])
 	{
 	case 'a':	++*k;return '\a';
@@ -220,24 +280,24 @@ static int	esc2codepoint(const char *text, size_t text_len, int *k)//one escape 
 	case '\\':	++*k;return '\\';
 	case '\?':	++*k;return '?';
 
-	case '0':case '1':case '2':case '3':case '4':case '5':case '6':case '7'://3 octals
-		ndigits=3;
-		code=(int)read_int(text, text_len, k, 8, &ndigits);
+	case '0':case '1':case '2':case '3':case '4':case '5':case '6':case '7'://3 octal(s)
+		nDigits=3;
+		code=(int)read_int(text, text_len, k, 8, &nDigits);
 		break;
 	case 'x':
 		++*k;
-		ndigits=0;//unlimited
-		code=(int)read_int(text, text_len, k, 16, &ndigits);
+		nDigits=0;//unlimited
+		code=(int)read_int(text, text_len, k, 16, &nDigits);
 		break;
 	case 'u'://4 hex
 		++*k;
-		ndigits=4;
-		code=(int)read_int(text, text_len, k, 16, &ndigits);
+		nDigits=4;
+		code=(int)read_int(text, text_len, k, 16, &nDigits);
 		break;
 	case 'U'://8 hex
 		++*k;
-		ndigits=8;
-		code=(int)read_int(text, text_len, k, 16, &ndigits);
+		nDigits=8;
+		code=(int)read_int(text, text_len, k, 16, &nDigits);
 		break;
 	default:
 		log_error("Unknown", 0, "Invalid escape sequence: %.*s", 3, text+*k-1);
@@ -252,8 +312,8 @@ typedef struct KeywordStruct
 	const char *kw;
 	int code;
 } Keyword;
-static ArrayHandle kwmap=0;
-static int	kwmap_cmp(const void *left, const void *right)
+static ArrayHandle kwMap=0;
+static int	kwMap_cmp(const void *left, const void *right)
 {
 	const char
 		*s1=((Keyword const*)left)->kw,
@@ -274,46 +334,25 @@ static int	kwmap_cmp(const void *left, const void *right)
 static void	debug_print_keywords()
 {
 	printf("Keywords:\n");
-	for(int k=0;k<(int)kwmap->count;++k)
+	for(int k=0;k<(int)kwMap->count;++k)
 	{
-		Keyword const *kw=(Keyword const*)array_at_const(&kwmap, k);
+		Keyword const *kw=(Keyword const*)array_at_const(&kwMap, k);
 		printf("%3d\t%s\n", k, kw->kw);
 	}
 	printf("\n");
 }
 #endif
-static void	kwmap_init(ArrayHandle *kwmap)
-{
-	ARRAY_ALLOC(Keyword, *kwmap, MKEY_COUNT, 0);
-	for(int k=0;k<MKEY_COUNT;++k)
-	{
-		Keyword *kw=array_at(kwmap, k);
-		kw->code=MODMASK|k;
-		kw->kw=mcodes[k];
-	}
-#ifdef _MSC_VER
-	debug_print_keywords();//
-#endif
-#if 0
-	qsort(kwmap[0]->data, MKEY_COUNT, sizeof(Keyword), kwmap_cmp);//BROKEN
-#else
-	isort(kwmap[0]->data, kwmap[0]->count, kwmap[0]->esize, kwmap_cmp);
-#endif
-#ifdef _MSC_VER
-	debug_print_keywords();//
-#endif
-}
-static int	find_codepoint(const char *text, size_t text_len, int *k, ArrayConstHandle kwmap)
+static int	find_codepoint(const char *text, size_t text_len, int *k)
 {
 	int L, R, mid;
 
-	L=0, R=(int)kwmap->count-1;
+	L=0, R=(int)kwMap->count-1;
 	while(L<=R)
 	{
 		mid=(L+R)>>1;
 		int k2=*k;
-		Keyword const *kw=(Keyword const*)array_at_const(&kwmap, mid);
-		int ret=acme_strcmp_ascii_ci(text, text_len, &k2, kw->kw);
+		Keyword const *kw=(Keyword const*)array_at(&kwMap, mid);
+		int ret=acme_strCmp_ascii_ci(text, text_len, &k2, kw->kw);
 		if(ret>0)
 			L=mid+1;
 		else if(ret<0)
@@ -329,21 +368,42 @@ static int	find_codepoint(const char *text, size_t text_len, int *k, ArrayConstH
 }
 static int	read_codepoint(const char *text, size_t text_len, int *k)
 {
-	int code;
+	int k0, code;
 
-	if(!kwmap)
-		kwmap_init(&kwmap);
+	if(!kwMap)//initialize kwMap
+	{
+		ARRAY_ALLOC(Keyword, kwMap, MKEY_COUNT, 0);
+		for(int kk=0;kk<MKEY_COUNT;++kk)
+		{
+			Keyword *kw=array_at(&kwMap, kk);
+			kw->code=MODMASK|kk;
+			kw->kw=mcodes[kk];
+		}
+#ifdef _MSC_VER
+		debug_print_keywords();//
+#endif
+#if 0
+		qsort(kwMap->data, MKEY_COUNT, sizeof(Keyword), kwMap_cmp);//BROKEN
+#else
+		isort(kwMap->data, kwMap->count, kwMap->esize, kwMap_cmp);
+#endif
+#ifdef _MSC_VER
+		debug_print_keywords();//
+#endif
+	}
 
+	k0=*k;
 	switch(text[*k])
 	{
 	case '\'':
-		++*k;
+		++*k;//skip '\''
 		code=esc2codepoint(text, text_len, k);
 		if(text[*k]!='\'')
 		{
-			int lineno=get_lineno(text, *k);
-			log_error("Config", lineno+1, "Expected a closing quote");
-			//LOGE("Config error line %d: Expected a closing quote", lineno);
+			int lineStart, lineNo=get_lineNo(text, *k, &lineStart);
+			log_error("Config", lineNo+1, "col %d: Expected a closing quote, got code=%08X, followed by 0x%02X-%02X-%02X", *k-lineStart, code, text[*k], text[*k+1], text[*k+2]);
+			log_error("Config", lineNo+1, "col %d: ...can't read character literal %.*s", *k-lineStart, k0+50<text_len?50:text_len-k0, text+k0);
+			//LOGE("Config(%d:%d): Expected a closing quote", lineNo+1, *k-lineStart);
 			return 0;
 		}
 		++*k;
@@ -360,7 +420,7 @@ static int	read_codepoint(const char *text, size_t text_len, int *k)
 		break;
 	default:
 		if(text[*k]<'1'||text[*k]>'9')
-			code=find_codepoint(text, text_len, k, kwmap);
+			code=find_codepoint(text, text_len, k);
 		else
 			code=(int)read_int(text, text_len, k, 10, 0);
 		break;
@@ -371,7 +431,7 @@ static const char
 	kw_layout[]="layout",
 
 	kw_lang[]="lang", kw_url[]="url",
-	kw_ascii[]="ascii", kw_numpad[]="numpad", kw_decnumpad[]="decnumpad",
+	kw_ascii[]="ascii", kw_numPad[]="numpad", kw_decNumPad[]="decnumpad",
 
 	kw_portrait[]="portrait", kw_landscape[]="landscape",
 
@@ -420,21 +480,21 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 	{
 		if(skip_ws(text, text_len, &k))
 			break;
-		if((len=memcmp_ascii_ci(text+k, kw_lang)))		//default language declaration
+		if((len=memCmp_ascii_ci(text+k, kw_lang)))		//default language declaration
 		{
 			k+=len;
 			if(skip_ws(text, text_len, &k))
 				return parse_error(text, k, "Expected default language");
-			if(!parse_langname(text, text_len, &k, &ctx->defaultlang))
+			if(!parse_langName(text, text_len, &k, &ctx->defaultlang))
 				return 0;
 			continue;
 		}
-		if((len=memcmp_ascii_ci(text+k, kw_theme)))		//theme declaration
+		if((len=memCmp_ascii_ci(text+k, kw_theme)))		//theme declaration
 		{
-			int lineNo;
+			int lineNo, lineStart;
 #ifdef DEBUG_COLORS
-			lineNo=get_lineno(text, k);
-			log_error("config", lineNo, "theme block: %.*s", 50, text+k);
+			lineNo=get_lineNo(text, k, &lineStart);
+			log_error("config", lineNo, "col %d: theme block: %.*s", k-lineStart, 50, text+k);
 #endif
 			char set_flags[THEME_COLOR_COUNT]={0};
 			k+=len;
@@ -448,7 +508,7 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 				int kw_idx=-1;
 				for(int k3=0;k3<THEME_COLOR_COUNT;++k3)
 				{
-					if((len=memcmp_ascii_ci(text+k, kw_colors[k3])))
+					if((len=memCmp_ascii_ci(text+k, kw_colors[k3])))
 					{
 						kw_idx=k3;
 						break;
@@ -474,26 +534,26 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 				}
 
 #ifdef DEBUG_COLORS
-				lineNo=get_lineno(text, k);
-				log_error("config", lineNo, "set %s = 0x%08X", kw_colors[kw_idx], ctx->theme[kw_idx]);
+				lineNo=get_lineNo(text, k, &lineStart);
+				log_error("config", lineNo, "col %d: set %s = 0x%08X", k-lineStart, kw_colors[kw_idx], ctx->theme[kw_idx]);
 #endif
 			}
 			for(int k2=0;k2<THEME_COLOR_COUNT;++k2)
 			{
 				if(!set_flags[k2])
 				{
-					lineNo=get_lineno(text, k);
+					lineNo=get_lineNo(text, k, &lineStart);
 					if(store_theme&&k2==color_idx)
 					{
 						int printed=snprintf(g_buf, G_BUF_SIZE, "\n\t%s 0x%08X", kw_colors[k2], color_value);
 						array_insert(aText, k, g_buf, printed, 1, 0);
 						k+=printed;
-						log_error("config", lineNo, "Missing color \'%s\', it was appended", kw_colors[k2]);
+						log_error("config", lineNo, "col %d: Missing color \'%s\', it was appended", k-lineStart, kw_colors[k2]);
 					}
 					else
 					{
 						ctx->theme[k2]=rand();//assumes RAND_MAX is 0x7FFFFFFF
-						log_error("config", lineNo, "Missing color \'%s\', it was set to random color", kw_colors[k2]);//TODO report syntax errors as toast or an overlay (better with multiple errors)
+						log_error("config", lineNo, "col %d: Missing color \'%s\', it was set to random color", k-lineStart, kw_colors[k2]);//TODO report syntax errors as toast or an overlay (better with multiple errors)
 					}
 				}
 			}
@@ -502,7 +562,7 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 			++k;//skip '}'
 			continue;
 		}
-		len=memcmp_ascii_ci(text+k, kw_layout);			//new layout
+		len=memCmp_ascii_ci(text+k, kw_layout);			//new layout
 #ifdef DEBUG_PARSER
 		LOG_ERROR("k = %d", k);
 #endif
@@ -515,31 +575,31 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 		if(skip_ws(text, text_len, &k))
 			return parse_error(text, k, "Expected layout type");
 		layout=(Layout*)ARRAY_APPEND(ctx->layouts, 0, 1, 1, 0);
-		if((len=memcmp_ascii_ci(text+k, kw_lang)))//layout type is 'lang'
+		if((len=memCmp_ascii_ci(text+k, kw_lang)))//layout type is 'lang'
 		{
 			k+=len;
 			layout->type=LAYOUT_LANG;
-			if(!parse_langname(text, text_len, &k, &layout->lang))
+			if(!parse_langName(text, text_len, &k, &layout->lang))
 				break;
 		}
-		else if((len=memcmp_ascii_ci(text+k, kw_url)))//layout type is 'url'
+		else if((len=memCmp_ascii_ci(text+k, kw_url)))//layout type is 'url'
 		{
 			k+=len;
 			layout->type=LAYOUT_URL;
-			if(!parse_langname(text, text_len, &k, &layout->lang))
+			if(!parse_langName(text, text_len, &k, &layout->lang))
 				break;
 		}
-		else if((len=memcmp_ascii_ci(text+k, kw_ascii)))//layout type is 'ascii'
+		else if((len=memCmp_ascii_ci(text+k, kw_ascii)))//layout type is 'ascii'
 		{
 			k+=len;
 			layout->type=LAYOUT_ASCII;
 		}
-		else if((len=memcmp_ascii_ci(text+k, kw_numpad)))//layout type is 'numpad'
+		else if((len=memCmp_ascii_ci(text+k, kw_numPad)))//layout type is 'numpad'
 		{
 			k+=len;
 			layout->type=LAYOUT_NUMPAD;
 		}
-		else if((len=memcmp_ascii_ci(text+k, kw_decnumpad)))//layout type is 'decnumpad'
+		else if((len=memCmp_ascii_ci(text+k, kw_decNumPad)))//layout type is 'decnumpad'
 		{
 			k+=len;
 			layout->type=LAYOUT_DECNUMPAD;
@@ -547,7 +607,7 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 		else//layout must be one of the previous types
 			return parse_error(text, k, "Expected layout type");
 
-		for(int k2=0, nlayouts=(int)ctx->layouts->count-1;k2<nlayouts;++k2)			//check for duplicate layouts
+		for(int k2=0, nLayouts=(int)ctx->layouts->count-1;k2<nLayouts;++k2)			//check for duplicate layouts
 		{
 			Layout const *l2=(Layout const*)array_at(&ctx->layouts, k2);
 			if(layout->type==l2->type)
@@ -556,15 +616,15 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 				{
 					if(!strcmp((char*)l2->lang->data, (char*)layout->lang->data))
 					{
-						int lineno=get_lineno(text, k);
-						log_error("Config", lineno+1, "Duplicate \'layout %s %s\'", layout->type==LAYOUT_LANG?kw_lang:kw_url, (char*)layout->lang->data);
-						//LOGE("Config(%d): Duplicate \'layout %s %s\'", lineno, layout->type==LAYOUT_LANG?kw_lang:kw_url, (char*)layout->lang->data);
+						int lineStart, lineNo=get_lineNo(text, k, &lineStart);
+						log_error("Config", lineNo+1, "col %d: Duplicate \'layout %s %s\'", k-lineStart, layout->type==LAYOUT_LANG?kw_lang:kw_url, (char*)layout->lang->data);
+						//LOGE("Config(%d): Duplicate \'layout %s %s\'", lineNo, layout->type==LAYOUT_LANG?kw_lang:kw_url, (char*)layout->lang->data);
 						//return 0;
 					}
 				}
 				else
 				{
-					int lineno=get_lineno(text, k);
+					int lineStart, lineNo=get_lineNo(text, k, &lineStart);
 					const char *a;
 					switch(layout->type)
 					{
@@ -573,8 +633,8 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 					case LAYOUT_DECNUMPAD:a="decnumpad";break;
 					default:a="<unknown>";break;
 					}
-					log_error("Config", lineno+1, "Duplicate \'layout %s\'", a);
-					//LOGE("Config(%d): Duplicate \'layout %s\'", lineno, a);
+					log_error("Config", lineNo+1, "col %d: Duplicate \'layout %s\'", k-lineStart, a);
+					//LOGE("Config(%d): Duplicate \'layout %s\'", lineNo, a);
 				}
 			}
 		}
@@ -583,13 +643,13 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 			return parse_error(text, k, "Expected portrait or landscape");
 		for(int k2=0;k2<2;++k2)
 		{
-			if((len=memcmp_ascii_ci(text+k, kw_portrait)))
+			if((len=memCmp_ascii_ci(text+k, kw_portrait)))
 			{
 				k+=len;
 				rows=&layout->portrait;
 				layout_height=&layout->p_percent;
 			}
-			else if((len=memcmp_ascii_ci(text+k, kw_landscape)))
+			else if((len=memCmp_ascii_ci(text+k, kw_landscape)))
 			{
 				k+=len;
 				rows=&layout->landscape;
@@ -662,8 +722,8 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 	}
 	if(!ctx->defaultlang)
 		return parse_error(text, (int)text_len-1, "Missing default language declaration, for example: \'lang en\'");
-	int nlayouts=(int)ctx->layouts->count, found_lang=0, found_url=0;
-	for(int kl=0;kl<nlayouts;++kl)
+	int nLayouts=(int)ctx->layouts->count, found_lang=0, found_url=0;
+	for(int kl=0;kl<nLayouts;++kl)
 	{
 		layout=(Layout*)array_at(&ctx->layouts, kl);
 		if((layout->type==LAYOUT_LANG||layout->type==LAYOUT_URL)&&!strcmp((char*)layout->lang->data, (char*)ctx->defaultlang->data))
@@ -674,13 +734,13 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 				found_url=1;
 		}
 	}
-	int lno=0;
+	int lStart=0, lno=0;
 	if(!found_lang||!found_url)
-		lno=get_lineno(text, (int)text_len-1);
+		lno=get_lineNo(text, (int)text_len-1, &lStart);
 	if(!found_lang)
-		log_error("Config", lno+1, "Missing \'layout lang %s\'", (char*)ctx->defaultlang->data);
+		log_error("Config", lno+1, "col %d: Missing \'layout lang %s\'", lStart, (char*)ctx->defaultlang->data);
 	if(!found_url)
-		log_error("Config", lno+1, "Missing \'layout url %s\'", (char*)ctx->defaultlang->data);
+		log_error("Config", lno+1, "col %d: Missing \'layout url %s\'", lStart, (char*)ctx->defaultlang->data);
 	if(store_theme)
 		free_context(&dummy_ctx);
 	return found_lang&&found_url;
@@ -688,28 +748,28 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 
 static int	calc_raster_sizes_rows(ArrayHandle rows, int width, int height, float kb_percent)
 {
-	int nrows, nbuttons, kb_height;
+	int nRows, nButtons, kb_height;
 	Row *row;
 
 	if(kb_percent<=0||kb_percent>1)
 		return 0;
 	kb_height=(int)((float)height*kb_percent);
-	nrows=(int)rows->count;
-	for(int ky=0;ky<nrows;++ky)
+	nRows=(int)rows->count;
+	for(int ky=0;ky<nRows;++ky)
 	{
 		row=(Row*)array_at(&rows, ky);
-		row->y1=ky*kb_height/nrows;
-		row->y2=(ky+1)*kb_height/nrows;
-		nbuttons=(int)row->buttons->count;
+		row->y1=ky*kb_height/nRows;
+		row->y2=(ky+1)*kb_height/nRows;
+		nButtons=(int)row->buttons->count;
 		float gain=0;
-		for(int kx=0;kx<nbuttons;++kx)
+		for(int kx=0;kx<nButtons;++kx)
 		{
 			Button *button=(Button*)array_at(&row->buttons, kx);
 			gain+=button->relativeWidth;
 		}
 		gain=(float)width/gain;
 		float x1=0;
-		for(int kx=0;kx<nbuttons;++kx)
+		for(int kx=0;kx<nButtons;++kx)
 		{
 			Button *button=(Button*)array_at(&row->buttons, kx);
 			float x2=x1+button->relativeWidth;
