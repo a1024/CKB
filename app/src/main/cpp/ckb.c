@@ -11,7 +11,7 @@
 #include<errno.h>
 static const char file[]=__FILE__;
 
-	#define OVERWRITE_EVERYTIME
+//	#define OVERWRITE_EVERYTIME
 //	#define STORE_ERRORS
 
 const char statefn[]="/data/data/com.example.customkb/state.txt";//UPDATE AT RELEASE
@@ -228,7 +228,7 @@ EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_init(JNIE
 		}
 		if(text)
 		{
-			ret=parse_state(text, &glob->ctx);
+			ret=parse_state((char*)text->data, text->count, &glob->ctx);
 			ret&=calc_raster_sizes(&glob->ctx, glob->w, glob->h, glob->w>glob->h);
 		}
 		else
@@ -434,4 +434,58 @@ EXTERN_C JNIEXPORT jstring JNICALL Java_com_example_customkb_CKBnativelib_getErr
 		return 0;
 	ArrayHandle *error=(ArrayHandle*)array_at(&errors, errorIdx);
 	return env[0]->NewStringUTF(env, (char*)error[0]->data);
+}
+
+//settings activity
+EXTERN_C JNIEXPORT jstring JNICALL Java_com_example_customkb_CKBnativelib_loadConfig(JNIEnv *env, jclass clazz)
+{
+	ArrayHandle text;
+	jstring ret;
+
+	text=load_text(statefn);
+	if(!text)
+		return 0;
+	ret=env[0]->NewStringUTF(env, (char*)text->data);
+	array_free(&text, 0);
+	return ret;
+}
+EXTERN_C JNIEXPORT jboolean JNICALL Java_com_example_customkb_CKBnativelib_saveConfig(JNIEnv *env, jclass clazz, jstring text)
+{
+	const char *str;
+	size_t len;
+	Context ctx={0};
+	int success;
+
+	if(!text)
+	{
+		LOG_ERROR("Error: config text is nullptr");
+		return 0;
+	}
+	str=env[0]->GetStringUTFChars(env, text, 0);
+	if(!str)
+	{
+		LOG_ERROR("Error: config text is nullptr");
+		return 0;
+	}
+	len=strlen(text);
+	success=parse_state(text, len, &ctx);
+	free_context(&ctx);
+	if(success)
+	{
+		success=save_text(statefn, text, len);
+	}
+	return success;
+	//if(!success)
+	//{
+	//	free_context(&ctx);
+	//	return 0;
+	//}
+	//free_context(&glob->ctx);
+	//memcpy(&glob->ctx, &ctx, sizeof(Context));
+	//return 1;
+}
+EXTERN_C JNIEXPORT jboolean JNICALL Java_com_example_customkb_CKBnativelib_resetConfig(JNIEnv *env, jclass clazz)
+{
+	size_t len=strlen(default_config);
+	return save_text(statefn, default_config, len);
 }

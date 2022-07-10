@@ -89,7 +89,7 @@ void		free_row(void *data);
 void		free_layout(void *data);
 void		free_context(Context *ctx);
 
-int 		parse_state(ArrayConstHandle text, Context *ctx);
+int 		parse_state(const char *text, size_t text_len, Context *ctx);
 int 		calc_raster_sizes(Context *ctx, int width, int height, int is_landscape);
 
 

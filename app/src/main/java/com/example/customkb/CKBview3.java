@@ -575,7 +575,7 @@ public class CKBview3 extends ViewGroup
 
 		int nRows=CKBnativelib.init(mode, numeric_signed||numeric_decimal?1:0, w, h);
 		int nErrors=CKBnativelib.getNErrors();
-		addError("Errors: "+nErrors);
+		//addError("init: "+nErrors+" errors");
 		if(nErrors>0)
 		{
 			for(int ke=0;ke<nErrors;++ke)

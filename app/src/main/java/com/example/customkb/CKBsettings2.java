@@ -6,6 +6,7 @@ import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.text.Editable;
 import android.text.InputType;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
@@ -15,19 +16,25 @@ import android.view.MotionEvent;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.view.ViewCompat;
-
-import java.util.ArrayList;
 
 public class CKBsettings2 extends ViewGroup
 {
 	public static final String TAG="customkb";
+	public static final boolean
+		DEBUG_IO=false;
+
 	public static final int
 		STATE_ROOT=0,
 		STATE_CONFIG=1,
 		STATE_TEST=2,
-		STATE_COLORPICKER=3;
+		STATE_COLORPICKER=3,
+		STATE_RESET=4;
 	int state=STATE_ROOT;
 	String[] strings_root=
 	{
@@ -35,6 +42,7 @@ public class CKBsettings2 extends ViewGroup
 		"Config",
 		"Keyboard test",
 		"Color Picker",
+		"Reset all settings",
 	};
 	String[] strings_test=
 	{
@@ -45,11 +53,17 @@ public class CKBsettings2 extends ViewGroup
 		"Signed decimal",
 		"Password",
 	};
+	String[] strings_reset=
+	{
+		"<- Back",
+		"Confirm",
+	};
 
 	int w, h,//screen dimensions
 		px, py, dx, dy;//view position & dimensions
 	int scroll_y,//view position = scroll_y + position in list,  scroll_y <= 0
 		h_item, h_multiline, h_total;
+	Context context;
 	RectF rectf=new RectF();
 	Paint paint_text=new Paint(), paint_item=new Paint();
 	float textSize;
@@ -66,6 +80,7 @@ public class CKBsettings2 extends ViewGroup
 	public CKBactivity activity;
 
 	int frame_count=0;
+	TextView debug_tv;
 
 
 	enum ViewId//child views
@@ -97,8 +112,13 @@ public class CKBsettings2 extends ViewGroup
 			return super.onTouchEvent(e);
 		}
 	}
+	public void toast(String str)//toast is useless, use debug_tv
+	{
+		Toast.makeText(context, str, Toast.LENGTH_LONG).show();
+	}
 	void init(Context context)
 	{
+		this.context=context;
 		setId(ViewId.ROOT.ordinal());
 
 		//test
@@ -112,20 +132,38 @@ public class CKBsettings2 extends ViewGroup
 		multiline.setInputType(InputType.TYPE_CLASS_TEXT);
 		multiline.setSingleLine(false);
 		multiline.setImeOptions(EditorInfo.IME_FLAG_NO_ENTER_ACTION);
+
 		url		.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_URI);
 		numeric	.setInputType(InputType.TYPE_CLASS_NUMBER);
 		decimal	.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_SIGNED|InputType.TYPE_NUMBER_FLAG_DECIMAL);
 		password.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);
+
+		box_config.setInputType(InputType.TYPE_CLASS_TEXT);
+		box_config.setSingleLine(false);
+		box_config.setImeOptions(EditorInfo.IME_FLAG_NO_ENTER_ACTION);
+		box_config.setHorizontallyScrolling(false);
+		//box_config.setHorizontalScrollBarEnabled(false);
 
 		addView(multiline);
 		addView(url);
 		addView(numeric);
 		addView(decimal);
 		addView(password);
+		addView(box_config);
 		//end test
 
 		colorPicker=new ColorPicker(context, ViewId.COLOR_PICKER.ordinal());
 		addView(colorPicker);
+
+		if(DEBUG_IO)//only for debug
+		{
+			debug_tv=new TextView(context);
+			addView(debug_tv);
+			debug_tv.setTextSize(20);
+			//debug_tv.setText("Debug Information. Notice me senpai\nLOL_1\nLOL_2");
+			debug_tv.setVisibility(VISIBLE);
+		}
+		//toast(String.format("%dx%d", w, h));
 	}
 	public CKBsettings2(Context context){super(context); init(context);}
 	public CKBsettings2(Context context, AttributeSet attrs){super(context, attrs); init(context);}
@@ -138,6 +176,8 @@ public class CKBsettings2 extends ViewGroup
 
 		multiline.measure(dx, MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
 		h_multiline=multiline.getMeasuredHeight();
+
+		box_config.measure(dx, MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
 
 		h_total=h_item+h_multiline+h_item*8;
 		scroll();
@@ -184,11 +224,24 @@ public class CKBsettings2 extends ViewGroup
 		fastThreshold=Math.max(h/20, 1);//109
 		fastSpeed=Math.max(h/60, 1);//36
 		slowSpeed=Math.max(h/300, 1);//7
-		Log.e(TAG, String.format("threshold=%d, fast=%d, slow=%d", fastThreshold, fastSpeed, slowSpeed));
+		//Log.e(TAG, String.format("threshold=%d, fast=%d, slow=%d", fastThreshold, fastSpeed, slowSpeed));
 		setTestVisibility(INVISIBLE);
 		scroll_y=0;
 
+		box_config.setVisibility(INVISIBLE);
+		setTheme(box_config, color_theme, textSize);
+		box_config.layout(0, h_item, w, h-h_item);
+
 		setBkColorRand();
+
+		if(DEBUG_IO)
+		{
+			debug_tv.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize);
+			debug_tv.setTextColor(0xFF000000);
+			ColorStateList csl=ColorStateList.valueOf(color_theme);//https://stackoverflow.com/questions/40838069/programmatically-changing-underline-color-of-edittext
+			ViewCompat.setBackgroundTintList(debug_tv, csl);
+			debug_tv.layout(0, h>>1, w, h);
+		}
 	}
 
 	//drawing functions
@@ -249,9 +302,15 @@ public class CKBsettings2 extends ViewGroup
 		case STATE_COLORPICKER:
 			drawLabel(0, dx, 0, h_item, radius, "Apply", canvas);
 			break;
+		case STATE_RESET:
+			drawOptions(strings_reset, yPos, radius, canvas);
+			break;
 		}
+
+		//	canvas.drawText(debug_msg, 0, h>>1, paint_text);//
 		//canvas.drawText(String.format("frame %d scroll_y %d", frame_count, scroll_y), w>>1, h>>1, paint_text);//
 		//++frame_count;//
+
 		if(redraw)
 		{
 			redraw=false;
@@ -267,8 +326,6 @@ public class CKBsettings2 extends ViewGroup
 		decimal		.setVisibility(visibility);
 		password	.setVisibility(visibility);
 	}
-	boolean isStateTest(){return state==STATE_TEST;}
-	boolean isStateTheme(){return state==STATE_COLORPICKER;}
 	void scroll()
 	{
 		if(multiline!=null)//if every edittext was initialized
@@ -323,6 +380,33 @@ public class CKBsettings2 extends ViewGroup
 			invalidate();
 		}
 	}
+	public boolean loadConfig()
+	{
+		String text=CKBnativelib.loadConfig();
+		//toast("Loading config...");
+		if(text==null)
+		{
+			//Log.e(TAG, "Failed to load config, text == nullptr");
+			return false;
+		}
+
+		//if(DEBUG_IO)//
+		//	debug_tv.setText(text);//
+
+		//box_config.setText("Sike!");
+		box_config.setText(text);
+		return true;
+	}
+	public boolean saveConfig()
+	{
+		Editable text=box_config.getText();
+		if(text==null)
+		{
+			//Log.e(TAG, "editable text == nullptr");
+			return false;
+		}
+		return CKBnativelib.saveConfig(text.toString());
+	}
 	public boolean touch(MotionEvent e, int viewId)
 	{
 		if(viewId>ViewId.ROOT.ordinal())
@@ -354,6 +438,7 @@ public class CKBsettings2 extends ViewGroup
 					choice	=(int)((p.y		-scroll_y)/h_item);
 				if(c0==choice)
 				{
+				//	Log.e(TAG, String.format("BEFORE: state = %d, (config=%d), choice=%d", state, STATE_CONFIG, choice));//
 					int s0=state;
 					switch(state)
 					{
@@ -363,22 +448,43 @@ public class CKBsettings2 extends ViewGroup
 						case 0://quit
 							activity.finish();
 							break;
-						case 1:
-							state=STATE_CONFIG;
+						case 1://select config
+							if(!loadConfig())
+							{
+							//	Log.e(TAG, "Failed to load config file");
+								toast("Failed to load config file");
+							}
+							else
+							{
+								state=STATE_CONFIG;
+								box_config.setVisibility(VISIBLE);
+							}
 							break;
-						case 2:
+						case 2://select keyboard test
 							setTestVisibility(VISIBLE);
 							state=STATE_TEST;
 							break;
-						case 3:
+						case 3://select color picker
 							colorPicker.setVisibility(VISIBLE);
 							state=STATE_COLORPICKER;
+							break;
+						case 4://reset all settings
+							state=STATE_RESET;
 							break;
 						}
 						break;
 					case STATE_CONFIG:
 						if(choice==0)
-							state=STATE_ROOT;
+						{
+							if(saveConfig())
+							{
+								toast("Saved");
+								box_config.setVisibility(INVISIBLE);
+								state=STATE_ROOT;
+							}
+							else
+								toast("Failed to save");
+						}
 						break;
 					case STATE_TEST:
 						if(choice==0)
@@ -394,9 +500,24 @@ public class CKBsettings2 extends ViewGroup
 							state=STATE_ROOT;
 						}
 						break;
+					case STATE_RESET:
+						if(choice==0)
+							state=STATE_ROOT;
+						else if(choice==1)
+						{
+							if(CKBnativelib.resetConfig())
+							{
+								toast("Settings were reset");
+								state=STATE_ROOT;
+							}
+							else
+								toast("Failed to reset settings");
+						}
+						break;
 					default:
 						break;
 					}
+					//Log.e(TAG, String.format("AFTER: state = %d, (config=%d)", state, STATE_CONFIG));//
 					if(state!=s0)
 					{
 						switch(state)
@@ -413,8 +534,11 @@ public class CKBsettings2 extends ViewGroup
 						case STATE_COLORPICKER:
 							activity.setTitle("Color Picker");
 							break;
+						case STATE_RESET:
+							activity.setTitle("Reset all settings?");
+							break;
 						default:
-							activity.setTitle("What.");
+							activity.setTitle("What is going on?");
 							break;
 						}
 					}
