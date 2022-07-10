@@ -288,7 +288,9 @@ public class CKBsettings2 extends ViewGroup
 			drawOptions(strings_root, yPos, radius, canvas);
 			break;
 		case STATE_CONFIG:
-			drawLabel(0, dx, 0, h_item, radius, "Apply", canvas);
+		case STATE_COLORPICKER_PICK:
+			drawLabel(0, dx>>1, 0, h_item, radius, "OK", canvas);
+			drawLabel(dx>>1, dx, 0, h_item, radius, "Cancel", canvas);
 			break;
 		case STATE_TEST:
 			drawLabel(0, dx, yPos, yPos+h_item, radius, strings_test[0], canvas);
@@ -316,9 +318,6 @@ public class CKBsettings2 extends ViewGroup
 			break;
 		case STATE_COLORPICKER_MENU:
 			drawOptions(strings_theme, yPos, radius, canvas);
-			break;
-		case STATE_COLORPICKER_PICK:
-			drawLabel(0, dx, 0, h_item, radius, "Apply", canvas);
 			break;
 		case STATE_RESET:
 			drawOptions(strings_reset, yPos, radius, canvas);
@@ -493,14 +492,22 @@ public class CKBsettings2 extends ViewGroup
 					case STATE_CONFIG:
 						if(choice==0)
 						{
-							if(saveConfig())
+							if(p.x<(dx>>1)&&p.startx<(dx>>1))//apply
 							{
-								toast("Saved");
+								if(saveConfig())
+								{
+									toast("Saved");
+									box_config.setVisibility(INVISIBLE);
+									state=STATE_ROOT;
+								}
+								else//don't close if failed
+									toast("Failed to save");
+							}
+							else//cancel
+							{
 								box_config.setVisibility(INVISIBLE);
 								state=STATE_ROOT;
 							}
-							else
-								toast("Failed to save");
 						}
 						break;
 					case STATE_TEST:
@@ -515,42 +522,46 @@ public class CKBsettings2 extends ViewGroup
 							state=STATE_ROOT;
 						else if(choice>0&&choice<strings_theme.length)
 						{
-								Log.e(TAG, "Calling init...");//
+						//	Log.e(TAG, "Calling init...");//
+							int[] theme_colors=null;
 							CKBnativelib.init(0, 0, w, h);//parse config file
 							int nErrors=CKBnativelib.getNErrors();
 							if(nErrors>0)
 							{
-								Log.e(TAG, "init failed");//
+								Log.e(TAG, "Failed to read config file");//
 								for(int ke=0;ke<nErrors;++ke)
 									Log.e(TAG, CKBnativelib.getError(ke));
 							}
 							else
+								theme_colors=CKBnativelib.getColors();
+							if(theme_colors==null)
 							{
-								int[] theme_colors=CKBnativelib.getColors();
-								if(theme_colors==null)
-								{
-									Log.e(TAG, "Failed to retrieve theme colors, fallback to random");
-									theme_colors=new int[CKBview3.THEME_COLOR_COUNT];
-									for(int k=0;k<CKBview3.THEME_COLOR_COUNT;++k)
-										theme_colors[k]=(int)(255*Math.random())<<24|(int)(255*Math.random())<<16|(int)(255*Math.random())<<8|(int)(255*Math.random());
-								}
-								pick_color_idx=choice-1;
-								colorPicker.ch_rgb=theme_colors[pick_color_idx];
-								colorPicker.setChoice(false);
-
-								colorPicker.setVisibility(VISIBLE);
-								state=STATE_COLORPICKER_PICK;
+								String msg="Failed to retrieve theme colors, fallback to random";
+								Log.e(TAG, msg);
+								toast(msg);
+								theme_colors=new int[CKBview3.THEME_COLOR_COUNT];
+								for(int k=0;k<CKBview3.THEME_COLOR_COUNT;++k)
+									theme_colors[k]=(int)(255*Math.random())<<24|(int)(255*Math.random())<<16|(int)(255*Math.random())<<8|(int)(255*Math.random());
 							}
+							pick_color_idx=choice-1;
+							colorPicker.ch_rgb=theme_colors[pick_color_idx];
+							colorPicker.setChoice(false);
+
+							colorPicker.setVisibility(VISIBLE);
+							state=STATE_COLORPICKER_PICK;
 							//CKBnativelib.finish();//native CRASH
 						}
 						break;
 					case STATE_COLORPICKER_PICK:
 						if(choice==0)
 						{
-							if(CKBnativelib.storeThemeColor(colorPicker.ch_rgb, pick_color_idx))
-								toast(String.format("Saved '%s' as 0x%08X", strings_theme[pick_color_idx+1], colorPicker.ch_rgb));
-							else
-								toast(String.format("Failed to save '%s' as 0x%08X", strings_theme[pick_color_idx+1], colorPicker.ch_rgb));
+							if(p.x<(dx>>1)&&p.startx<(dx>>1))//apply
+							{
+								if(CKBnativelib.storeThemeColor(colorPicker.ch_rgb, pick_color_idx))
+									toast(String.format("Saved '%s' as 0x%08X", strings_theme[pick_color_idx+1], colorPicker.ch_rgb));
+								else
+									toast(String.format("Failed to save '%s' as 0x%08X", strings_theme[pick_color_idx+1], colorPicker.ch_rgb));
+							}//else cancel
 							pick_color_idx=-1;
 							colorPicker.setVisibility(INVISIBLE);
 							state=STATE_COLORPICKER_MENU;
