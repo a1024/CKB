@@ -24,7 +24,9 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Rect;
+import android.text.Editable;
 import android.text.InputType;
+import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.TypedValue;
@@ -192,20 +194,93 @@ public class ColorPicker extends ViewGroup
 	Rect[] bounds=new Rect[OBJ_COUNT];
 	Rect rect;
 	Path path;//slider triangle marker, depends on text size
+	boolean ignore_boxes=true;
+
 	public ColorPicker(Context _context										){super(_context);					context=_context; init();}
 	public ColorPicker(Context _context, AttributeSet attrs					){super(_context, attrs);			context=_context; init();}
 	public ColorPicker(Context _context, AttributeSet attrs, int defStyle	){super(_context, attrs, defStyle);	context=_context; init();}
 	public ColorPicker(Context _context, int viewId							){super(_context); startId=viewId;	context=_context; init();}
-	EditText prepareBox(int viewId)
+
+	int clampComp(int comp)
+	{
+		if(comp<0)
+			comp=0;
+		if(comp>255)
+			comp=255;
+		return comp;
+	}
+	class BoxListener implements TextWatcher
+	{
+		int viewId;
+		BoxListener(int viewId){this.viewId=viewId;}
+		@Override public void beforeTextChanged(CharSequence s, int start, int count, int after){}
+		@Override public void onTextChanged(CharSequence s, int start, int before, int count)
+		{
+			Log.e(TAG, String.format("Box %d (case %d) updated: '%s'", viewId, viewId-(startId+1), s));
+			if(ignore_boxes)
+				return;
+			try
+			{
+				switch(viewId-(startId+1))
+				{
+				case 0://hue box
+					ch_hsl.h=Float.parseFloat(s.toString());
+					setChoice(true, false);
+					break;
+				case 1://saturation box
+					ch_hsl.s=Float.parseFloat(s.toString());
+					setChoice(true, false);
+					break;
+				case 2://luminance box
+					ch_hsl.l=Float.parseFloat(s.toString());
+					setChoice(true, false);
+					break;
+				case 3://red box
+					int r=Integer.parseInt(s.toString());
+					ch_rgb&=0xFF00FFFF;
+					ch_rgb|=clampComp(r)<<16;
+					setChoice(false, false);
+					break;
+				case 4://green box
+					int g=Integer.parseInt(s.toString());
+					ch_rgb&=0xFFFF00FF;
+					ch_rgb|=clampComp(g)<<8;
+					setChoice(false, false);
+					break;
+				case 5://blue box
+					int b=Integer.parseInt(s.toString());
+					ch_rgb&=0xFFFFFF00;
+					ch_rgb|=clampComp(b);
+					setChoice(false, false);
+					break;
+				case 6://alpha box
+					int a=Integer.parseInt(s.toString());
+					ch_rgb&=0x00FFFFFF;
+					ch_rgb|=clampComp(a)<<24;
+					setChoice(false, false);
+					break;
+				}
+				invalidate();
+			}
+			catch(NumberFormatException e)
+			{
+				Log.e(TAG, String.format("Number parse error: %s", e.getMessage()));
+			}
+		}
+		@Override public void afterTextChanged(Editable s){}
+	}
+
+	EditText prepareNumberBox(int viewId)
 	{
 		EditText et=new EditText(context);
 		et.setSingleLine();
-		et.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_VARIATION_PASSWORD);
+		et.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_VARIATION_PASSWORD);//why password?
 		et.setTransformationMethod(null);
 		et.setId(viewId);
 		et.setPadding(0, 0, 0, 0);
 		et.setGravity(Gravity.BOTTOM);//BOTTOM does nothing
 		//et.setGravity(Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);//CENTER_HORIZONTAL: disappeared
+		et.addTextChangedListener(new BoxListener(viewId));
 		addView(et);
 		return et;
 	}
@@ -264,14 +339,14 @@ public class ColorPicker extends ViewGroup
 		paint_marker.setStrokeWidth(3);
 
 		for(int k=0;k<BOX_COUNT;++k)
-			boxes[k]=prepareBox(startId+1+k);
+			boxes[k]=prepareNumberBox(startId+1+k);
 
 		for(int k=0;k<OBJ_COUNT;++k)
 			bounds[k]=new Rect();
 
 		setWillNotDraw(false);
 
-		setChoice(true);
+		setChoice(true, true);
 		paint_debug.setColor(0x80808080);
 	}
 	void setTextSize(float _TextSize)
@@ -344,7 +419,7 @@ public class ColorPicker extends ViewGroup
 		m2.postTranslate(rect.left, rect.top);
 	}
 
-	void setChoice(boolean srcIsHSL)
+	void setChoice(boolean srcIsHSL, boolean updateBoxes)
 	{
 		if(srcIsHSL)
 			ch_rgb=hsl2rgb(ch_hsl);
@@ -355,13 +430,18 @@ public class ColorPicker extends ViewGroup
 		paint_ch.setColor(hsl2rgb(ch_hsl));
 		setSLBmp(bm2, ch_hsl.h);
 
-		boxes[BOX_HUE].setText(String.format("%f", ch_hsl.h));
-		boxes[BOX_SAT].setText(String.format("%f", ch_hsl.s));
-		boxes[BOX_LUM].setText(String.format("%f", ch_hsl.l));
-		boxes[BOX_RED	].setText(String.format("%d", ch_rgb>>16&0xFF));
-		boxes[BOX_GREEN	].setText(String.format("%d", ch_rgb>>8&0xFF));
-		boxes[BOX_BLUE	].setText(String.format("%d", ch_rgb&0xFF));
-		boxes[BOX_ALPHA	].setText(String.format("%d", ch_rgb>>24&0xFF));
+		if(updateBoxes)
+		{
+			ignore_boxes=true;
+			boxes[BOX_HUE].setText(String.format("%f", ch_hsl.h));
+			boxes[BOX_SAT].setText(String.format("%f", ch_hsl.s));
+			boxes[BOX_LUM].setText(String.format("%f", ch_hsl.l));
+			boxes[BOX_RED	].setText(String.format("%d", ch_rgb>>16&0xFF));
+			boxes[BOX_GREEN	].setText(String.format("%d", ch_rgb>>8&0xFF));
+			boxes[BOX_BLUE	].setText(String.format("%d", ch_rgb&0xFF));
+			boxes[BOX_ALPHA	].setText(String.format("%d", ch_rgb>>24&0xFF));
+			ignore_boxes=false;
+		}
 	}
 
 	void drawStrongHLine(float x1, float x2, float y, Canvas canvas)
@@ -473,10 +553,7 @@ public class ColorPicker extends ViewGroup
 	}
 	TouchInfo ti=new TouchInfo();
 	int hit_idx=OBJ_COUNT;
-	boolean hitTest(Rect r, TouchInfo.Pointer p)
-	{
-		return p.startx>=r.left&&p.startx<r.right&&p.starty>=r.top&&p.starty<r.bottom;
-	}
+	boolean hitTest(Rect r, TouchInfo.Pointer p){return p.startx>=r.left&&p.startx<r.right&&p.starty>=r.top&&p.starty<r.bottom;}
 	float clamp0(float x, float hi)
 	{
 		if(x<0)
@@ -519,7 +596,7 @@ public class ColorPicker extends ViewGroup
 					rect=bounds[BM1];
 					ch_hsl.h+=(p.x-p.prevx)*360.f/(rect.right-rect.left);	ch_hsl.h=clamp0(ch_hsl.h, 360);
 					//ch_hsl.h=(p.x-rect.left)*360.f/(rect.right-rect.left);
-					setChoice(true);
+					setChoice(true, true);
 				}
 				break;
 			case BM2:
@@ -530,7 +607,7 @@ public class ColorPicker extends ViewGroup
 					ch_hsl.l+=(p.y-p.prevy)/(rect.bottom-rect.top);	ch_hsl.l=clamp0(ch_hsl.l, 1);
 				//	ch_hsl.s=(p.x-rect.left)/(rect.right-rect.left);
 				//	ch_hsl.l=(p.y-rect.top)/(rect.bottom-rect.top);
-					setChoice(true);
+					setChoice(true, true);
 				}
 				break;
 			case PREVIEW:
@@ -546,7 +623,7 @@ public class ColorPicker extends ViewGroup
 					c+=(int)(p.x-p.prevx)*255/(rect.right-rect.left);	c=clamp0(c, 255);
 				//	c=(int)(p.x-rect.left)*255/(rect.right-rect.left);
 					ch_rgb=ch_rgb&comp_mask[hit_idx-SLIDER_R]|c<<comp_idx[hit_idx-SLIDER_R];
-					setChoice(false);
+					setChoice(false, true);
 				}
 				break;
 			}

@@ -199,12 +199,12 @@ lang en		//default language
 
 theme{
 	background	0x00202020
-	button_idle		0xC0707070
-	button_fast		0xC0237CE9
-	button_pressed	0xC0FF8040
+	button_idle		0xDC707070
+	button_fast		0xDC237CE9
+	button_pressed	0xDCFF8040
 	labels		0xFFFFFFFF
 	shadow_modifier		0xC000FF00
-	shadow_letter		0xC0FF0000
+	shadow_letter		0xC08600FF
 	shadow_non_letter	0xC00000FF
 	preview_popup	0xC0000000
 }

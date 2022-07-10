@@ -93,6 +93,7 @@ public class CKBsettings2 extends ViewGroup
 	int pick_color_idx=-1;
 	ColorPicker colorPicker;
 	public CKBactivity activity;
+	int[] theme_colors=null;
 
 	int frame_count=0;
 	TextView debug_tv;
@@ -271,12 +272,30 @@ public class CKBsettings2 extends ViewGroup
 		canvas.drawText(label, x1+r+r, (y1+y2+textSize)*0.5f, paint_text);
 		//canvas.drawText(label, x1+r, y2-r, paint_text);
 	}
-	void drawOptions(String[] labels, float yPos, float radius, Canvas canvas)
+	int	change_color(int color)//also sets alpha to 100%
 	{
+		int r=color>>16&0xFF, g=color>>8&0xFF, b=color&0xFF;//0xAARRGGBB
+		return 0xFF000000|((r+128)&0xFF)<<16|((g+128)&0xFF)<<8|((b+128)&0xFF);
+	}
+	void drawOptions(String[] labels, float yPos, float radius, Canvas canvas, int[] colors)
+	{
+		int k=0;
+		int c_button=paint_item.getColor(), c_text=paint_text.getColor();
 		for(String label:labels)
 		{
+			if(colors!=null&&k>0)
+			{
+				paint_item.setColor(colors[k-1]);
+				paint_text.setColor(change_color(colors[k-1]));
+			}
 			drawLabel(0, dx, yPos, yPos+h_item, radius, label, canvas);
 			yPos+=h_item;
+			++k;
+		}
+		if(colors!=null)
+		{
+			paint_item.setColor(c_button);
+			paint_text.setColor(c_text);
 		}
 	}
 	@Override public void onDraw(Canvas canvas)
@@ -285,7 +304,7 @@ public class CKBsettings2 extends ViewGroup
 		switch(state)
 		{
 		case STATE_ROOT:
-			drawOptions(strings_root, yPos, radius, canvas);
+			drawOptions(strings_root, yPos, radius, canvas, null);
 			break;
 		case STATE_CONFIG:
 		case STATE_COLORPICKER_PICK:
@@ -317,10 +336,10 @@ public class CKBsettings2 extends ViewGroup
 			//}
 			break;
 		case STATE_COLORPICKER_MENU:
-			drawOptions(strings_theme, yPos, radius, canvas);
+			drawOptions(strings_theme, yPos, radius, canvas, theme_colors);
 			break;
 		case STATE_RESET:
-			drawOptions(strings_reset, yPos, radius, canvas);
+			drawOptions(strings_reset, yPos, radius, canvas, null);
 			break;
 		}
 
@@ -424,6 +443,30 @@ public class CKBsettings2 extends ViewGroup
 		}
 		return CKBnativelib.saveConfig(text.toString());
 	}
+	public void get_theme_colors()
+	{
+		theme_colors=null;
+		CKBnativelib.init(0, 0, w, h);//parse config file
+		int nErrors=CKBnativelib.getNErrors();
+		if(nErrors>0)
+		{
+			Log.e(TAG, "Failed to read config file");//
+			for(int ke=0;ke<nErrors;++ke)
+				Log.e(TAG, CKBnativelib.getError(ke));
+		}
+		else
+			theme_colors=CKBnativelib.getColors();
+		//CKBnativelib.finish();//native CRASH
+		if(theme_colors==null)
+		{
+			String msg="Failed to retrieve theme colors, fallback to random";
+			Log.e(TAG, msg);
+			toast(msg);
+			theme_colors=new int[CKBview3.THEME_COLOR_COUNT];
+			for(int k=0;k<CKBview3.THEME_COLOR_COUNT;++k)
+				theme_colors[k]=(int)(255*Math.random())<<24|(int)(255*Math.random())<<16|(int)(255*Math.random())<<8|(int)(255*Math.random());
+		}
+	}
 	public boolean touch(MotionEvent e, int viewId)
 	{
 		if(viewId>ViewId.ROOT.ordinal())
@@ -482,6 +525,7 @@ public class CKBsettings2 extends ViewGroup
 							state=STATE_TEST;
 							break;
 						case 3://select color picker menu
+							get_theme_colors();
 							state=STATE_COLORPICKER_MENU;
 							break;
 						case 4://reset all settings
@@ -523,33 +567,12 @@ public class CKBsettings2 extends ViewGroup
 						else if(choice>0&&choice<strings_theme.length)
 						{
 						//	Log.e(TAG, "Calling init...");//
-							int[] theme_colors=null;
-							CKBnativelib.init(0, 0, w, h);//parse config file
-							int nErrors=CKBnativelib.getNErrors();
-							if(nErrors>0)
-							{
-								Log.e(TAG, "Failed to read config file");//
-								for(int ke=0;ke<nErrors;++ke)
-									Log.e(TAG, CKBnativelib.getError(ke));
-							}
-							else
-								theme_colors=CKBnativelib.getColors();
-							if(theme_colors==null)
-							{
-								String msg="Failed to retrieve theme colors, fallback to random";
-								Log.e(TAG, msg);
-								toast(msg);
-								theme_colors=new int[CKBview3.THEME_COLOR_COUNT];
-								for(int k=0;k<CKBview3.THEME_COLOR_COUNT;++k)
-									theme_colors[k]=(int)(255*Math.random())<<24|(int)(255*Math.random())<<16|(int)(255*Math.random())<<8|(int)(255*Math.random());
-							}
 							pick_color_idx=choice-1;
 							colorPicker.ch_rgb=theme_colors[pick_color_idx];
-							colorPicker.setChoice(false);
+							colorPicker.setChoice(false, true);
 
 							colorPicker.setVisibility(VISIBLE);
 							state=STATE_COLORPICKER_PICK;
-							//CKBnativelib.finish();//native CRASH
 						}
 						break;
 					case STATE_COLORPICKER_PICK:
