@@ -35,6 +35,8 @@ import android.view.MotionEvent;
 import android.view.ViewGroup;
 import android.widget.EditText;
 
+import java.util.Locale;
+
 public class ColorPicker extends ViewGroup
 {
 	public static final String TAG="customkb";
@@ -195,6 +197,7 @@ public class ColorPicker extends ViewGroup
 	Rect rect;
 	Path path;//slider triangle marker, depends on text size
 	boolean ignore_boxes=true;
+	public static final Locale loc=new Locale("US");
 
 	public ColorPicker(Context _context										){super(_context);					context=_context; init();}
 	public ColorPicker(Context _context, AttributeSet attrs					){super(_context, attrs);			context=_context; init();}
@@ -216,7 +219,7 @@ public class ColorPicker extends ViewGroup
 		@Override public void beforeTextChanged(CharSequence s, int start, int count, int after){}
 		@Override public void onTextChanged(CharSequence s, int start, int before, int count)
 		{
-			//Log.e(TAG, String.format("Box %d (case %d) updated: '%s'", viewId, viewId-(startId+1), s));
+			//Log.e(TAG, String.format(loc, "Box %d (case %d) updated: '%s'", viewId, viewId-(startId+1), s));
 			if(ignore_boxes)
 				return;
 			try
@@ -264,7 +267,7 @@ public class ColorPicker extends ViewGroup
 			}
 			catch(NumberFormatException e)
 			{
-				//Log.e(TAG, String.format("Number parse error: %s", e.getMessage()));
+				//Log.e(TAG, String.format(loc, "Number parse error: %s", e.getMessage()));
 			}
 		}
 		@Override public void afterTextChanged(Editable s){}
@@ -297,7 +300,7 @@ public class ColorPicker extends ViewGroup
 	void logColors(HSL hsl, int rgb, String op)
 	{
 		int r=rgb&0xFF, g=rgb>>8&0xFF, b=rgb>>16&0xFF, a=rgb>>24&0xFF;
-		Log.e(TAG, String.format("hsl,a(%f, %f, %f, %f) %s rgba(%d, %d, %d, %d)", hsl.h, hsl.s, hsl.l, hsl.a, op, r, g, b, a));
+		Log.e(TAG, String.format(loc, "hsl,a(%f, %f, %f, %f) %s rgba(%d, %d, %d, %d)", hsl.h, hsl.s, hsl.l, hsl.a, op, r, g, b, a));
 	}
 	void init()
 	{
@@ -403,8 +406,8 @@ public class ColorPicker extends ViewGroup
 				lp.height=h;
 			}
 			box.setLayoutParams(lp);
-			//Log.e(TAG, String.format("layout %d: %d, %d, %d, %d,  h=%d", k, rect.left, rect.top, rect.right, rect.bottom, h));//
-			//Log.e(TAG, String.format("layout %d: %d, %d, %d, %d", k, rect.left, rect.top+h/2, rect.right, rect.top+h));//
+			//Log.e(TAG, String.format(loc, "layout %d: %d, %d, %d, %d,  h=%d", k, rect.left, rect.top, rect.right, rect.bottom, h));//
+			//Log.e(TAG, String.format(loc, "layout %d: %d, %d, %d, %d", k, rect.left, rect.top+h/2, rect.right, rect.top+h));//
 			box.layout(rect.left, rect.top+h/2, rect.right, rect.top+h);
 		}
 
@@ -433,13 +436,13 @@ public class ColorPicker extends ViewGroup
 		if(updateBoxes)
 		{
 			ignore_boxes=true;
-			boxes[BOX_HUE].setText(String.format("%f", ch_hsl.h));
-			boxes[BOX_SAT].setText(String.format("%f", ch_hsl.s));
-			boxes[BOX_LUM].setText(String.format("%f", ch_hsl.l));
-			boxes[BOX_RED	].setText(String.format("%d", ch_rgb>>16&0xFF));
-			boxes[BOX_GREEN	].setText(String.format("%d", ch_rgb>>8&0xFF));
-			boxes[BOX_BLUE	].setText(String.format("%d", ch_rgb&0xFF));
-			boxes[BOX_ALPHA	].setText(String.format("%d", ch_rgb>>24&0xFF));
+			boxes[BOX_HUE].setText(String.format(loc, "%f", ch_hsl.h));
+			boxes[BOX_SAT].setText(String.format(loc, "%f", ch_hsl.s));
+			boxes[BOX_LUM].setText(String.format(loc, "%f", ch_hsl.l));
+			boxes[BOX_RED	].setText(String.format(loc, "%d", ch_rgb>>16&0xFF));
+			boxes[BOX_GREEN	].setText(String.format(loc, "%d", ch_rgb>>8&0xFF));
+			boxes[BOX_BLUE	].setText(String.format(loc, "%d", ch_rgb&0xFF));
+			boxes[BOX_ALPHA	].setText(String.format(loc, "%d", ch_rgb>>24&0xFF));
 			ignore_boxes=false;
 		}
 	}
@@ -477,7 +480,7 @@ public class ColorPicker extends ViewGroup
 	}
 	void drawSlider(Rect r, Bitmap bm, int val255, Canvas canvas)
 	{
-		//Log.e(TAG, String.format("drawSlider() val=%d", val255));//
+		//Log.e(TAG, String.format(loc, "drawSlider() val=%d", val255));//
 
 		float w=r.right-r.left, h=r.bottom-r.top;
 		float x=val255*w/255, h2=h*0.5f;
@@ -488,7 +491,7 @@ public class ColorPicker extends ViewGroup
 
 		if(path!=null)
 		{
-			//Log.e(TAG, String.format("drawSlider(): val=%d, h=%f, translating by (%f, %f)", val255, h, x, h2));//
+			//Log.e(TAG, String.format(loc, "drawSlider(): val=%d, h=%f, translating by (%f, %f)", val255, h, x, h2));//
 			canvas.translate(x, h2);
 			canvas.drawPath(path, paint_marker);
 			//canvas.drawRect(0, 0, h2, h2, paint_debug);//
@@ -502,10 +505,10 @@ public class ColorPicker extends ViewGroup
 	{
 		if(dx==0||dy==0)
 		{
-			Log.e(TAG, String.format("ColorPicker onDraw() dx=%d, dy=%d!!", dx, dy));
+			Log.e(TAG, String.format(loc, "ColorPicker onDraw() dx=%d, dy=%d!!", dx, dy));
 			return;
 		}
-		//Log.e(TAG, String.format("colorPicker.onDraw(); (%d, %d), %dx%d", px, py, dx, dy));
+		//Log.e(TAG, String.format(loc, "colorPicker.onDraw(); (%d, %d), %dx%d", px, py, dx, dy));
 		//float r=20;
 		//rectf.set(r, r, dx-r, dy-r);
 		//canvas.drawRoundRect(rectf, r, r, paint_bmp);
@@ -536,10 +539,10 @@ public class ColorPicker extends ViewGroup
 		//draw markers
 		rect=bounds[BM1];
 		drawStrongVLine(rect.left+ch_hsl.h/360.f*(rect.right-rect.left), rect.top, rect.bottom, canvas);
-		//Log.e(TAG, String.format("V line: x=%f, y1=%d, y2=%d", rect.left+ch_hsl.h/360.f*(rect.right-rect.left), rect.top, rect.bottom));//
+		//Log.e(TAG, String.format(loc, "V line: x=%f, y1=%d, y2=%d", rect.left+ch_hsl.h/360.f*(rect.right-rect.left), rect.top, rect.bottom));//
 		rect=bounds[BM2];
 		drawCrossHair(rect.left+ch_hsl.s*(rect.right-rect.left), rect.top+ch_hsl.l*(rect.bottom-rect.top), canvas);
-		//Log.e(TAG, String.format("X hair: x=%f, y=%f", rect.left+ch_hsl.s*(rect.right-rect.left), rect.top+ch_hsl.l*(rect.bottom-rect.top)));//
+		//Log.e(TAG, String.format(loc, "X hair: x=%f, y=%f", rect.left+ch_hsl.s*(rect.right-rect.left), rect.top+ch_hsl.l*(rect.bottom-rect.top)));//
 
 		//float radius=20;
 		////paint_black.setTextSize(30);

@@ -11,6 +11,8 @@
 #include<errno.h>
 static const char file[]=__FILE__;
 
+	#define USE_CCS_UTF8
+//	#define DEBUG_FILE
 //	#define DEBUG_ERROR
 //	#define DEBUG_LANG
 //	#define DEBUG_HEAP
@@ -146,13 +148,20 @@ ArrayHandle	load_text(const char *filename)
 	int error=stat(filename, &info);
 	if(error)
 	{
-		LOG_ERROR("Cannot read %s, %d:%s", filename, error, strerror(error));
+		//do not emit error here
+		//the file doesn't exist just after installing the app
+		//LOG_ERROR("Cannot read %s, %d: %s", filename, error, strerror(error));
 		return 0;
 	}
+#ifdef USE_CCS_UTF8
 	f=fopen(filename, "r,ccs=UTF-8");//'ccs=UTF-8' is non-standard
+#else
+	f=fopen(filename, "r");
+#endif
 	if(!f)
 	{
-		LOG_ERROR("Cannot read %s", filename);
+		LOG_ERROR("Cannot read %s, %d: %s", filename, error, strerror(error));
+		//LOG_ERROR("Cannot read %s", filename);
 		return 0;
 	}
 	STR_ALLOC(ret, info.st_size);
@@ -168,7 +177,11 @@ int 		save_text(const char *filename, const char *text, size_t len)
 	FILE *f;
 	int error;
 
+#ifdef USE_CCS_UTF8
 	f=fopen(filename, "w,ccs=UTF-8");//'ccs=UTF-8' is non-standard
+#else
+	f=fopen(filename, "w");//'ccs=UTF-8' is non-standard
+#endif
 	if(!f)
 	{
 		error=errno;
@@ -217,7 +230,6 @@ ArrayHandle	get_rows(int layoutIdx)
 		LOG_ERROR("Rows pointer == nullptr");
 	return rows;
 }
-#ifdef DEBUG_LANG
 const char*	layoutType2str(Layout const *layout)
 {
 	switch(layout->type)
@@ -235,7 +247,6 @@ const char*	layoutType2str(Layout const *layout)
 	}
 	return "UNIDENTIFIED";
 }
-#endif
 
 EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_init(JNIEnv *env, jclass clazz, jint mode, jint decnumpad, jint width, jint height)
 {
@@ -255,10 +266,19 @@ EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_init(JNIE
 #else
 		text=load_text(stateFilename);
 #endif
+//#ifdef DEBUG_FILE
+//		LOG_ERROR("text == %p", text);//
+//#endif
 		if(!text)
 		{
 			size_t len=strlen(default_config);
+//#ifdef DEBUG_FILE
+//			LOG_ERROR("len == %lld", (long long)len);//
+//#endif
 			ret=save_text(stateFilename, default_config, len);
+//#ifdef DEBUG_FILE
+//			LOG_ERROR("success == %d", ret);//
+//#endif
 			if(ret)
 				text=load_text(stateFilename);
 		}
@@ -266,7 +286,13 @@ EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_init(JNIE
 		{
 			ret=parse_state((char*)text->data, text->count, &glob->ctx, 0, 0, 0);
 			ret&=calc_raster_sizes(&glob->ctx, glob->w, glob->h, glob->w>glob->h);
+//#ifdef DEBUG_FILE
+//			LOG_ERROR("success == %d, text == %.*s...", ret, 100, (char*)text->data);//
+//#endif
 			array_free(&text, 0);
+//#ifdef DEBUG_FILE
+//			LOG_ERROR("text was freed");//
+//#endif
 		}
 		else
 			ret=0;
@@ -274,6 +300,9 @@ EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_init(JNIE
 	else
 		ret=1;
 
+//#ifdef DEBUG_FILE
+//	LOG_ERROR("After parsing: success == %d", ret);//
+//#endif
 	if(ret)
 	{
 		switch(glob->mode)
@@ -301,6 +330,9 @@ EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_init(JNIE
 			break;
 		}
 		Layout *l2=array_at(&glob->ctx.layouts, glob->layoutidx);
+//#ifdef DEBUG_FILE
+//		LOG_ERROR("Selected layout %d: %s %s", glob->layoutidx, layoutType2str(l2), l2->type==LAYOUT_LANG||l2->type==LAYOUT_URL?(char*)l2->lang->data:"(not a language)");//
+//#endif
 		if(width<height)//portrait
 			return (int)l2->portrait->count;
 		return (int)l2->landscape->count;
@@ -332,7 +364,10 @@ EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_getC
 
 	jArr=env[0]->NewIntArray(env, THEME_COLOR_COUNT);
 	if(!jArr)
+	{
+		LOG_ERROR("getColors(): NewIntArray() returned nullptr");
 		return 0;
+	}
 	env[0]->SetIntArrayRegion(env, jArr, 0, THEME_COLOR_COUNT, glob->ctx.theme);
 	return jArr;
 }
@@ -466,18 +501,24 @@ EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_nextLangu
 #endif
 		if(l2->type==LAYOUT_LANG||l2->type==LAYOUT_URL)
 		{
-			if((layout->type==LAYOUT_LANG||layout->type==LAYOUT_URL)&&l2->type!=layout->type)
-				continue;
+			//if((layout->type==LAYOUT_LANG||layout->type==LAYOUT_URL)&&l2->type!=layout->type)//TODO remove url layout type
+			//	continue;
 			idx=kl;
 			break;
 		}
 	}
 	if(idx<0)
+	{
+		LOG_ERROR("nextLanguage(): Didn't find an another language");
 		return 0;
+	}
 	glob->layoutidx=idx;
 	ArrayHandle rows=get_rows(glob->layoutidx);
 	if(!rows)
+	{
+		LOG_ERROR("nextLanguage(): %s rows == nullptr", glob->w<glob->h?"Portrait":"Landscape");
 		return 0;
+	}
 	return (int)rows->count;
 }
 
@@ -570,5 +611,11 @@ EXTERN_C JNIEXPORT jboolean JNICALL Java_com_example_customkb_CKBnativelib_reset
 		return 0;
 	}
 
-	return save_text(stateFilename, default_config, len);
+	success=save_text(stateFilename, default_config, len);
+	if(!success)
+	{
+		LOG_ERROR("Failed to write to %s", stateFilename);
+		return 0;
+	}
+	return success;
 }

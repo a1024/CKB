@@ -1,6 +1,7 @@
 package com.example.customkb;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -429,7 +430,13 @@ public class CKBview3 extends ViewGroup
 		layout.clear();
 		layout.ensureCapacity(nRows);
 		for(int k=0;k<nRows;++k)
-			layout.add(CKBnativelib.getRow(k));
+		{
+			int[] row=CKBnativelib.getRow(k);
+			if(row==null)
+				addError(String.format(loc, "Java: Row %d == null", k));
+			else
+				layout.add(row);
+		}
 
 		ViewGroup.LayoutParams lp=getLayoutParams();
 		lp.height=kb_h=CKBnativelib.getKbHeight();
@@ -524,7 +531,7 @@ public class CKBview3 extends ViewGroup
 	public void startCKB(EditorInfo info)
 	{
 		if(DEBUG_MODE)
-			Log.e(TAG, String.format("inputType = 0x%08X", info.inputType));
+			Log.e(TAG, String.format(loc, "inputType = 0x%08X", info.inputType));
 		switch(info.inputType&InputType.TYPE_MASK_CLASS)
 		{
 		case InputType.TYPE_NULL:
@@ -600,8 +607,14 @@ public class CKBview3 extends ViewGroup
 		//addError("init: "+nErrors+" errors");
 		if(nErrors>0)
 		{
+			service.displayToast(CKBnativelib.getError(0));//toast just the first error for now
 			for(int ke=0;ke<nErrors;++ke)
 				addError(CKBnativelib.getError(ke));
+			//service.displayToast("Failed to initialize keyboard, opening settings");
+
+			Intent intent=new Intent(service, CKBactivity.class);
+			intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+			service.startActivity(intent);
 			return;
 		}
 
@@ -616,15 +629,15 @@ public class CKBview3 extends ViewGroup
 		if(DEBUG_COLORS)
 		{
 			Log.e(TAG, "The theme is:");
-			Log.e(TAG, String.format("background        0x%08X", theme_colors[COLOR_BACKGROUND]));
-			Log.e(TAG, String.format("idle button       0x%08X", theme_colors[COLOR_BUTTON_IDLE]));
-			Log.e(TAG, String.format("quick mode        0x%08X", theme_colors[COLOR_BUTTON_FAST]));
-			Log.e(TAG, String.format("pressed button    0x%08X", theme_colors[COLOR_BUTTON_PRESSED]));
-			Log.e(TAG, String.format("label             0x%08X", theme_colors[COLOR_LABELS]));
-			Log.e(TAG, String.format("shadow modifier   0x%08X", theme_colors[COLOR_SHADOW_MODIFIER]));
-			Log.e(TAG, String.format("shadow letter     0x%08X", theme_colors[COLOR_SHADOW_LETTER]));
-			Log.e(TAG, String.format("shadow non-letter 0x%08X", theme_colors[COLOR_SHADOW_NON_LETTER]));
-			Log.e(TAG, String.format("preview popup     0x%08X", theme_colors[COLOR_PREVIEW_POPUP]));
+			Log.e(TAG, String.format(loc, "background        0x%08X", theme_colors[COLOR_BACKGROUND]));
+			Log.e(TAG, String.format(loc, "idle button       0x%08X", theme_colors[COLOR_BUTTON_IDLE]));
+			Log.e(TAG, String.format(loc, "quick mode        0x%08X", theme_colors[COLOR_BUTTON_FAST]));
+			Log.e(TAG, String.format(loc, "pressed button    0x%08X", theme_colors[COLOR_BUTTON_PRESSED]));
+			Log.e(TAG, String.format(loc, "label             0x%08X", theme_colors[COLOR_LABELS]));
+			Log.e(TAG, String.format(loc, "shadow modifier   0x%08X", theme_colors[COLOR_SHADOW_MODIFIER]));
+			Log.e(TAG, String.format(loc, "shadow letter     0x%08X", theme_colors[COLOR_SHADOW_LETTER]));
+			Log.e(TAG, String.format(loc, "shadow non-letter 0x%08X", theme_colors[COLOR_SHADOW_NON_LETTER]));
+			Log.e(TAG, String.format(loc, "preview popup     0x%08X", theme_colors[COLOR_PREVIEW_POPUP]));
 		}
 		textPaint			.setColor(theme_colors[COLOR_LABELS]);
 		letterPaint			.setColor(theme_colors[COLOR_LABELS]);
@@ -836,11 +849,11 @@ public class CKBview3 extends ViewGroup
 							int[] row2=layout.get(tap_y);
 							int temp_idx=3+tap_x*2, x1_b=row2[temp_idx-1], code_b=row2[temp_idx], x2_b=row2[temp_idx+1];
 							if(code_b==(MODMASK|KEY_NAB))
-								Log.e(TAG, String.format("%d  c1=0x%08X, c2=0x%08X, tap(%d, %d)", frame_counter, color, color2, tap_x, tap_y));
+								Log.e(TAG, String.format(loc, "%d  c1=0x%08X, c2=0x%08X, tap(%d, %d)", frame_counter, color, color2, tap_x, tap_y));
 							else
 							{
 								String label2=getLabel(code_b);
-								Log.e(TAG, String.format("%d  c1=0x%08X, c2=0x%08X, tap(%d, %d): %s", frame_counter, color, color2, tap_x, tap_y, label2));
+								Log.e(TAG, String.format(loc, "%d  c1=0x%08X, c2=0x%08X, tap(%d, %d): %s", frame_counter, color, color2, tap_x, tap_y, label2));
 							}
 						}
 					}
@@ -1018,7 +1031,7 @@ public class CKBview3 extends ViewGroup
 		int ccX1=(int)(ti.prevx	/ccGridX), ccY1=(int)(ti.prevy	/ccGridY),
 			ccX2=(int)(ti.x		/ccGridX), ccY2=(int)(ti.y		/ccGridY);
 		if(DEBUG_CC)
-			Log.e(TAG, String.format("applyCC: (%d, %d)->(%d, %d)", ccX1, ccY1, ccX2, ccY2));//
+			Log.e(TAG, String.format(loc, "applyCC: (%d, %d)->(%d, %d)", ccX1, ccY1, ccX2, ccY2));//
 
 		if(ccX2<ccX1)
 			service.onNavigateCallback(MODMASK|KEY_LEFT, Math.abs(ccX2-ccX1), cc_flags);
@@ -1280,7 +1293,7 @@ public class CKBview3 extends ViewGroup
 								addError(ex);
 							}
 							if(DEBUG_STATE)
-								Log.e(TAG, String.format("BEFORE:  DOWN - %d%s%s", bIdx.code, bIdx.code==(MODMASK|KEY_SHIFT)?" SHIFT":"", isActive_shift?" ACTIVE":""));
+								Log.e(TAG, String.format(loc, "BEFORE:  DOWN - %d%s%s", bIdx.code, bIdx.code==(MODMASK|KEY_SHIFT)?" SHIFT":"", isActive_shift?" ACTIVE":""));
 							switch(bIdx.code)
 							{
 							case '\b':
@@ -1303,7 +1316,7 @@ public class CKBview3 extends ViewGroup
 								break;
 							}
 							if(DEBUG_STATE)
-								Log.e(TAG, String.format("AFTER:  DOWN - %d%s%s", bIdx.code, bIdx.code==(MODMASK|KEY_SHIFT)?" SHIFT":"", isActive_shift?" ACTIVE":""));
+								Log.e(TAG, String.format(loc, "AFTER:  DOWN - %d%s%s", bIdx.code, bIdx.code==(MODMASK|KEY_SHIFT)?" SHIFT":"", isActive_shift?" ACTIVE":""));
 						}
 						break;
 					case TouchInfo.S_MOVED://normal keyboard
