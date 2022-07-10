@@ -27,5 +27,6 @@ public class CKBnativelib
 	//settings activity
 	public static native String loadConfig();
 	public static native boolean saveConfig(String str);
+	public static native boolean storeThemeColor(int color, int idx);
 	public static native boolean resetConfig();
 }

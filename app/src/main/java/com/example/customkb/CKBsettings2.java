@@ -33,8 +33,9 @@ public class CKBsettings2 extends ViewGroup
 		STATE_ROOT=0,
 		STATE_CONFIG=1,
 		STATE_TEST=2,
-		STATE_COLORPICKER=3,
-		STATE_RESET=4;
+		STATE_COLORPICKER_MENU=3,
+		STATE_COLORPICKER_PICK=4,
+		STATE_RESET=5;
 	int state=STATE_ROOT;
 	String[] strings_root=
 	{
@@ -58,6 +59,19 @@ public class CKBsettings2 extends ViewGroup
 		"<- Back",
 		"Confirm",
 	};
+	String[] strings_theme=
+	{
+		"<- Back",
+		"Background color",
+		"Idle button color",
+		"Quick mode button color",
+		"Pressed button color",
+		"Button text color",
+		"Modifier button shadow color",
+		"Letter button shadow color",
+		"Non-letter button shadow color",
+		"Preview text color",
+	};
 
 	int w, h,//screen dimensions
 		px, py, dx, dy;//view position & dimensions
@@ -76,6 +90,7 @@ public class CKBsettings2 extends ViewGroup
 	TouchInfo touchInfo=new TouchInfo();
 	EditText2 multiline, url, numeric, decimal, password,
 		box_config;
+	int pick_color_idx=-1;
 	ColorPicker colorPicker;
 	public CKBactivity activity;
 
@@ -299,7 +314,10 @@ public class CKBsettings2 extends ViewGroup
 			//	yPos+=heights[ky]+h_item;
 			//}
 			break;
-		case STATE_COLORPICKER:
+		case STATE_COLORPICKER_MENU:
+			drawOptions(strings_theme, yPos, radius, canvas);
+			break;
+		case STATE_COLORPICKER_PICK:
 			drawLabel(0, dx, 0, h_item, radius, "Apply", canvas);
 			break;
 		case STATE_RESET:
@@ -375,7 +393,7 @@ public class CKBsettings2 extends ViewGroup
 				decimal		.layout(0, y, dx, y+h_item);		y+=h_item*2;
 				password	.layout(0, y, dx, y+h_item);	//	y+=h_item*2;
 			}
-			else if(state==STATE_COLORPICKER)//set position of color picker
+			else if(state==STATE_COLORPICKER_PICK)//set position of color picker
 				colorPicker.layout(0, h_item, dx, dy);
 			invalidate();
 		}
@@ -464,9 +482,8 @@ public class CKBsettings2 extends ViewGroup
 							setTestVisibility(VISIBLE);
 							state=STATE_TEST;
 							break;
-						case 3://select color picker
-							colorPicker.setVisibility(VISIBLE);
-							state=STATE_COLORPICKER;
+						case 3://select color picker menu
+							state=STATE_COLORPICKER_MENU;
 							break;
 						case 4://reset all settings
 							state=STATE_RESET;
@@ -493,9 +510,24 @@ public class CKBsettings2 extends ViewGroup
 							state=STATE_ROOT;
 						}
 						break;
-					case STATE_COLORPICKER:
+					case STATE_COLORPICKER_MENU:
+						if(choice==0)
+							state=STATE_ROOT;
+						else if(choice>0&&choice<strings_theme.length)
+						{
+							pick_color_idx=choice-1;
+							colorPicker.setVisibility(VISIBLE);
+							state=STATE_COLORPICKER_PICK;
+						}
+						break;
+					case STATE_COLORPICKER_PICK:
 						if(choice==0)
 						{
+							if(CKBnativelib.storeThemeColor(colorPicker.ch_rgb, pick_color_idx))
+								toast(String.format("Saved '%s' as 0x%08X", strings_theme[pick_color_idx+1], colorPicker.ch_rgb));
+							else
+								toast(String.format("Failed to save '%s' as 0x%08X", strings_theme[pick_color_idx+1], colorPicker.ch_rgb));
+							pick_color_idx=-1;
 							colorPicker.setVisibility(INVISIBLE);
 							state=STATE_ROOT;
 						}
@@ -531,8 +563,11 @@ public class CKBsettings2 extends ViewGroup
 						case STATE_TEST:
 							activity.setTitle("Keyboard Test");
 							break;
-						case STATE_COLORPICKER:
+						case STATE_COLORPICKER_MENU:
 							activity.setTitle("Color Picker");
+							break;
+						case STATE_COLORPICKER_PICK:
+							activity.setTitle(strings_theme[pick_color_idx+1]);
 							break;
 						case STATE_RESET:
 							activity.setTitle("Reset all settings?");

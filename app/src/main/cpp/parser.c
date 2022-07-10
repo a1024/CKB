@@ -9,8 +9,13 @@
 #include<math.h>
 static const char file[]=__FILE__;
 
+
 //	#define DEBUG_COLORS
 //	#define DEBUG_PARSER
+
+
+#define 	G_BUF_SIZE	1024
+extern char g_buf[G_BUF_SIZE];//used by log_error()
 
 static int	get_lineno(const char *text, int k)
 {
@@ -387,8 +392,11 @@ static const char
 
 	"preview_popup",
 };
-int 		parse_state(const char *text, size_t text_len, Context *ctx)
+int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle *aText, int color_value, int color_idx)
 {
+	int store_theme;
+	const char *text;
+	Context dummy_ctx={0}, *ctx;
 	int k, len;
 	Layout *layout;
 	ArrayHandle *rows;
@@ -396,6 +404,15 @@ int 		parse_state(const char *text, size_t text_len, Context *ctx)
 	float *layout_height;
 	Button *button;
 
+	if(cText)
+		store_theme=0, text=cText, ctx=ctx0;
+	else if(aText)
+		store_theme=1, text=(char*)aText[0]->data, text_len=aText[0]->count, ctx=&dummy_ctx;
+	else
+	{
+		LOG_ERROR("parse_state(): both pointers are nullptr");
+		return 0;
+	}
 	if(ctx->layouts)
 		LOG_ERROR("Possible memory leak: ctx->layouts == %p", ctx->layouts);
 	ARRAY_ALLOC(Layout, ctx->layouts, 0, 0);
@@ -450,6 +467,11 @@ int 		parse_state(const char *text, size_t text_len, Context *ctx)
 				ctx->theme[kw_idx]=(int)read_int(text, text_len, &k, 16, &nDigits);//TODO parse decimal color quartet (eg: 255, 255, 255, 255)
 				if(nDigits!=8)
 					return parse_error(text, k, "Expected a hex color value 0xAABBGGRR");
+				if(store_theme&&kw_idx==color_idx)
+				{
+					snprintf(g_buf, G_BUF_SIZE, "%08X", color_value);
+					memcpy(aText[0]->data+k-8, g_buf, 8);
+				}
 
 #ifdef DEBUG_COLORS
 				lineNo=get_lineno(text, k);
@@ -461,8 +483,18 @@ int 		parse_state(const char *text, size_t text_len, Context *ctx)
 				if(!set_flags[k2])
 				{
 					lineNo=get_lineno(text, k);
-					log_error("config", lineNo, "Missing color \'%s\', it was set to random color", kw_colors[k2]);//TODO report syntax errors as toast or an overlay (better with multiple errors)
-					ctx->theme[k2]=rand();//assumes RAND_MAX is 0x7FFFFFFF
+					if(store_theme&&k2==color_idx)
+					{
+						int printed=snprintf(g_buf, G_BUF_SIZE, "\n\t%s 0x%08X", kw_colors[k2], color_value);
+						array_insert(aText, k, g_buf, printed, 1, 0);
+						k+=printed;
+						log_error("config", lineNo, "Missing color \'%s\', it was appended", kw_colors[k2]);
+					}
+					else
+					{
+						ctx->theme[k2]=rand();//assumes RAND_MAX is 0x7FFFFFFF
+						log_error("config", lineNo, "Missing color \'%s\', it was set to random color", kw_colors[k2]);//TODO report syntax errors as toast or an overlay (better with multiple errors)
+					}
 				}
 			}
 			if(skip_ws(text, text_len, &k)||text[k]!='}')
@@ -649,6 +681,8 @@ int 		parse_state(const char *text, size_t text_len, Context *ctx)
 		log_error("Config", lno+1, "Missing \'layout lang %s\'", (char*)ctx->defaultlang->data);
 	if(!found_url)
 		log_error("Config", lno+1, "Missing \'layout url %s\'", (char*)ctx->defaultlang->data);
+	if(store_theme)
+		free_context(&dummy_ctx);
 	return found_lang&&found_url;
 }
 

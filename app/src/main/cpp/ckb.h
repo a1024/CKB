@@ -21,7 +21,10 @@ typedef enum ModKeyTypeEnum
 #undef		CKBKEY
 	MKEY_COUNT,
 } ModKeyType;
-extern const char *buttonlabels[], *modbuttonlabels[], *mcodes[];
+extern const char
+//	*buttonlabels[],
+//	*modbuttonlabels[],
+	*mcodes[];
 #define 	MODMASK		0x80000000//keys which are not in unicode have MSB set
 
 typedef enum ModeTypeEnum
@@ -103,7 +106,12 @@ void		free_row(void *data);
 void		free_layout(void *data);
 void		free_context(Context *ctx);
 
-int 		parse_state(const char *text, size_t text_len, Context *ctx);
+//parse_state:
+//call like this when parsing the state:
+//	success=parse_state(/*(const char*)*/ text, text_len, &ctx, 0, 0, 0);
+//call like this when setting config colors:
+//	success=parse_state(0, 0, 0, /*(ArrayHandle*)*/ &text, color, idx);
+int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle *aText, int color_value, int color_idx);
 int 		calc_raster_sizes(Context *ctx, int width, int height, int is_landscape);
 
 

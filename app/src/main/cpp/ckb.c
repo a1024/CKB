@@ -11,11 +11,10 @@
 #include<errno.h>
 static const char file[]=__FILE__;
 
-//	#define ALWAYS_RESET
+//	#define ALWAYS_RESET//don't use this macro, just press reset in settings
 //	#define STORE_ERRORS
 
-const char statefn[]="/data/data/com.example.customkb/state.txt";//UPDATE AT RELEASE
-const char tempfn[]="/data/data/com.example.customkb/temp.txt";
+const char stateFilename[]="/data/data/com.example.customkb/state.txt";//TODO UPDATE AT RELEASE
 const char log_tag[]="customkb";
 
 #define 	G_BUF_SIZE	1024
@@ -23,6 +22,7 @@ char 		g_buf[G_BUF_SIZE]={0};
 
 extern const char default_config[];
 
+#if 0
 const char *buttonlabels[]=
 {
 #define		CKBKEY(FLAG, DESCRIPTION)		DESCRIPTION,
@@ -35,6 +35,7 @@ const char *modbuttonlabels[]=
 #include	"ckb_mkeys.h"
 #undef		CKBKEY
 };
+#endif
 const char *mcodes[]=
 {
 #define		CKBKEY(FLAG, DESCRIPTION, KEYWORD)	KEYWORD,
@@ -45,7 +46,7 @@ const char *mcodes[]=
 Globals		*glob=0;
 ArrayHandle	errors=0;
 int			nerrors=0;
-JavaVM		*jvm=0;
+//JavaVM		*jvm=0;
 
 int 		glob_alloc()
 {
@@ -202,9 +203,9 @@ EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_init(JNIE
 	int ret;
 	ArrayHandle text;
 
-	ret=env[0]->GetJavaVM(env, &jvm);
-	if(ret)
-		LOG_ERROR("GetJavaVM() returned %d", ret);
+	//ret=env[0]->GetJavaVM(env, &jvm);
+	//if(ret)
+	//	LOG_ERROR("GetJavaVM() returned %d", ret);
 
 	ret=glob_alloc();
 	if(ret)
@@ -217,18 +218,18 @@ EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_init(JNIE
 #ifdef ALWAYS_RESET
 		text=0;
 #else
-		text=load_text(statefn);
+		text=load_text(stateFilename);
 #endif
 		if(!text)
 		{
 			size_t len=strlen(default_config);
-			ret=save_text(statefn, default_config, len);
+			ret=save_text(stateFilename, default_config, len);
 			if(ret)
-				text=load_text(statefn);
+				text=load_text(stateFilename);
 		}
 		if(text)
 		{
-			ret=parse_state((char*)text->data, text->count, &glob->ctx);
+			ret=parse_state((char*)text->data, text->count, &glob->ctx, 0, 0, 0);
 			ret&=calc_raster_sizes(&glob->ctx, glob->w, glob->h, glob->w>glob->h);
 			array_free(&text, 0);
 		}
@@ -458,7 +459,7 @@ EXTERN_C JNIEXPORT jstring JNICALL Java_com_example_customkb_CKBnativelib_loadCo
 	ArrayHandle text;
 	jstring ret;
 
-	text=load_text(statefn);
+	text=load_text(stateFilename);
 	if(!text)
 		return 0;
 	ret=env[0]->NewStringUTF(env, (char*)text->data);
@@ -484,14 +485,36 @@ EXTERN_C JNIEXPORT jboolean JNICALL Java_com_example_customkb_CKBnativelib_saveC
 		return 0;
 	}
 	text_len=strlen(text);
-	success=parse_state(text, text_len, &ctx);
+	success=parse_state(text, text_len, &ctx, 0, 0, 0);
 	free_context(&ctx);
 	if(success)
-		success=save_text(statefn, text, text_len);
+		success=save_text(stateFilename, text, text_len);
 	return success;
+}
+EXTERN_C JNIEXPORT jboolean JNICALL Java_com_example_customkb_CKBnativelib_storeThemeColor(JNIEnv *env, jclass clazz, jint color, jint idx)
+{
+	ArrayHandle text;
+	int success;
+
+	text=load_text(stateFilename);
+	if(!text)
+	{
+		LOG_ERROR("storeThemeColors(): failed to open %s", stateFilename);
+		return 0;
+	}
+	success=parse_state(0, 0, 0, &text, color, idx);
+	if(!success)
+		return 0;
+	success=save_text(stateFilename, (char*)text->data, text->count);
+	if(!success)
+	{
+		LOG_ERROR("storeThemeColors(): failed to write to %s", stateFilename);
+		return 0;
+	}
+	return 1;
 }
 EXTERN_C JNIEXPORT jboolean JNICALL Java_com_example_customkb_CKBnativelib_resetConfig(JNIEnv *env, jclass clazz)
 {
 	size_t len=strlen(default_config);
-	return save_text(statefn, default_config, len);
+	return save_text(stateFilename, default_config, len);
 }
