@@ -10,6 +10,7 @@ public class CKBnativelib
 	public static native int init(int mode, int decnumpad, int width, int height);//returns nRows in current layout
 	public static native void finish();
 	public static native int getKbHeight();
+	public static native int[] getColors();
 	public static native int[] getRow(int rowIdx);//y1, y2, x[0], code[0], x[1], code[1], ...x[n-1], code[n-1], x[n]
 
 	//switches between lang/url and ASCII if mode allows

@@ -174,11 +174,23 @@ public class CKBview3 extends ViewGroup
 	int touchId_shift=-1, touchId_selStart=-1, touchId_selEnd=-1;
 
 	//graphics	TODO load colors from config
-	int color_clear=0x00202020,
-		color_button=0xC0707070, color_button_fast=0xC0237CE9, color_button_pressed=0xC0FF8040,
-		color_labels=0xFFFFFFFF,//0xAARRGGBB
-		color_shadow=0xC00000FF, color_shadow_letters=0xC0FF0000, color_shadow_special=0xC000FF00,
-		color_preview_text=0xC0000000;//0x80FFFFFF 0x80000000
+	public static final int
+		COLOR_BACKGROUND=0,
+		COLOR_BUTTON_IDLE=1,
+		COLOR_BUTTON_FAST=2,
+		COLOR_BUTTON_PRESSED=3,
+		COLOR_LABELS=4,
+		COLOR_SHADOW_MODIFIER=5,
+		COLOR_SHADOW_LETTER=6,
+		COLOR_SHADOW_NON_LETTER=7,
+		COLOR_PREVIEW_POPUP=8,
+		THEME_COLOR_COUNT=9;
+	public int[] theme_colors;
+	//int color_clear=0x00202020,
+	//	color_button=0xC0707070, color_button_fast=0xC0237CE9, color_button_pressed=0xC0FF8040,
+	//	color_labels=0xFFFFFFFF,//0xAARRGGBB
+	//	color_shadow=0xC00000FF, color_shadow_letters=0xC0FF0000, color_shadow_special=0xC000FF00,
+	//	color_preview_text=0xC0000000;//0x80FFFFFF 0x80000000
 
 	float textSize=32, textSize_long=20, shadowOffset=4;
 	Paint textPaint, letterPaint, specialButtonPaint, textPaintDebug, penPaint, buttonPaint;
@@ -265,7 +277,8 @@ public class CKBview3 extends ViewGroup
 		DEBUG_TOUCH		=false,
 		DEBUG_CC		=false,
 		DEBUG_STATE		=false,
-		DEBUG_MODE		=false;
+		DEBUG_MODE		=false,
+		DEBUG_COLORS	=false;
 	public static final ArrayList<String> urgentMsg=new ArrayList<>();//when logcat isn't enough
 	public static final Locale loc=new Locale("US");
 	int frame_counter=0;
@@ -452,7 +465,7 @@ public class CKBview3 extends ViewGroup
 			textPaint=new Paint();
 			textPaint.setAntiAlias(true);
 			textPaint.setTextAlign(Paint.Align.CENTER);
-			textPaint.setColor(color_labels);
+			//textPaint.setColor(color_labels);
 			letterPaint=new Paint(textPaint);
 			specialButtonPaint=new Paint(textPaint);
 
@@ -464,12 +477,12 @@ public class CKBview3 extends ViewGroup
 			penPaint.setStrokeWidth(3);
 
 			buttonPaint=new Paint();
-			buttonPaint.setColor(color_button);
+			//buttonPaint.setColor(color_button);
 
 			shadowOffset=minDim/270.f;
-			textPaint			.setShadowLayer(shadowOffset*0.5f, shadowOffset, shadowOffset, color_shadow);//0xAARRGGBB
-			letterPaint			.setShadowLayer(shadowOffset*0.5f, shadowOffset, shadowOffset, color_shadow_letters);
-			specialButtonPaint	.setShadowLayer(shadowOffset*0.5f, shadowOffset, shadowOffset, color_shadow_special);
+			//textPaint			.setShadowLayer(shadowOffset*0.5f, shadowOffset, shadowOffset, color_shadow);//0xAARRGGBB
+			//letterPaint			.setShadowLayer(shadowOffset*0.5f, shadowOffset, shadowOffset, color_shadow_letters);
+			//specialButtonPaint	.setShadowLayer(shadowOffset*0.5f, shadowOffset, shadowOffset, color_shadow_special);
 
 			wrapPaint=new TextPaint();
 			wrapPaint.setTextSize(16*getResources().getDisplayMetrics().density);
@@ -483,10 +496,10 @@ public class CKBview3 extends ViewGroup
 
 			preview.setGravity(Gravity.CENTER);
 			preview.setTextSize(textSize/2);
-			preview.setTextColor(color_preview_text);
+			//preview.setTextColor(color_preview_text);
 
-			Drawable bk=DrawableCompat.wrap(preview.getBackground()).mutate();
-			DrawableCompat.setTint(bk, color_button_pressed);//change preview bkColor
+			//Drawable bk=DrawableCompat.wrap(preview.getBackground()).mutate();
+			//DrawableCompat.setTint(bk, color_button_pressed);//change preview bkColor
 
 			previewPopup=new PopupWindow(service.getApplication());
 			previewPopup.setContentView(preview);
@@ -582,28 +595,41 @@ public class CKBview3 extends ViewGroup
 				addError(CKBnativelib.getError(ke));
 			return;
 		}
-		else
+
+		theme_colors=CKBnativelib.getColors();
+		if(theme_colors==null)
 		{
-			kb_h=CKBnativelib.getKbHeight();
-			get_layout(nRows);
+			Log.e(TAG, "Failed to retrieve theme colors, fallback to random");
+			theme_colors=new int[THEME_COLOR_COUNT];
+			for(int k=0;k<THEME_COLOR_COUNT;++k)
+				theme_colors[k]=(int)(255*Math.random())<<24|(int)(255*Math.random())<<16|(int)(255*Math.random())<<8|(int)(255*Math.random());
 		}
-	/*	switch(mode)
+		if(DEBUG_COLORS)
 		{
-		case MODE_NUMBER:
-		case MODE_NUMERIC_PASSWORD:
-		case MODE_PHONE_NUMBER:
-			makeNumPad();
-			break;
-		case MODE_PASSWORD:
-			makePasswordKeyboard();
-			break;
-		case MODE_TEXT:
-		case MODE_URL:
-		case MODE_EMAIL:
-		default:
-			makeTextKeyboard();
-			break;
-		}//*/
+			Log.e(TAG, "The theme is:");
+			Log.e(TAG, String.format("background        0x%08X", theme_colors[COLOR_BACKGROUND]));
+			Log.e(TAG, String.format("idle button       0x%08X", theme_colors[COLOR_BUTTON_IDLE]));
+			Log.e(TAG, String.format("quick mode        0x%08X", theme_colors[COLOR_BUTTON_FAST]));
+			Log.e(TAG, String.format("pressed button    0x%08X", theme_colors[COLOR_BUTTON_PRESSED]));
+			Log.e(TAG, String.format("label             0x%08X", theme_colors[COLOR_LABELS]));
+			Log.e(TAG, String.format("shadow modifier   0x%08X", theme_colors[COLOR_SHADOW_MODIFIER]));
+			Log.e(TAG, String.format("shadow letter     0x%08X", theme_colors[COLOR_SHADOW_LETTER]));
+			Log.e(TAG, String.format("shadow non-letter 0x%08X", theme_colors[COLOR_SHADOW_NON_LETTER]));
+			Log.e(TAG, String.format("preview popup     0x%08X", theme_colors[COLOR_PREVIEW_POPUP]));
+		}
+		textPaint			.setColor(theme_colors[COLOR_LABELS]);
+		letterPaint			.setColor(theme_colors[COLOR_LABELS]);
+		specialButtonPaint	.setColor(theme_colors[COLOR_LABELS]);
+		buttonPaint.setColor(theme_colors[COLOR_BUTTON_IDLE]);
+		textPaint			.setShadowLayer(shadowOffset*0.5f, shadowOffset, shadowOffset, theme_colors[COLOR_SHADOW_NON_LETTER]);//0xAARRGGBB
+		letterPaint			.setShadowLayer(shadowOffset*0.5f, shadowOffset, shadowOffset, theme_colors[COLOR_SHADOW_LETTER]);
+		specialButtonPaint	.setShadowLayer(shadowOffset*0.5f, shadowOffset, shadowOffset, theme_colors[COLOR_SHADOW_MODIFIER]);
+		preview.setTextColor(theme_colors[COLOR_PREVIEW_POPUP]);
+		Drawable bk=DrawableCompat.wrap(preview.getBackground()).mutate();
+		DrawableCompat.setTint(bk, theme_colors[COLOR_BUTTON_PRESSED]);//change preview bkColor
+
+		get_layout(nRows);
+
 		kb_y1=h-kb_h;
 		ccGridX=ceilMultiple((int)(textSize*1.5), w);
 		ccGridY=kb_h/layout.size();
@@ -698,7 +724,8 @@ public class CKBview3 extends ViewGroup
 	{
 		float radius=10;
 
-		canvas.drawColor(color_clear);//same everywhere
+		canvas.drawColor(theme_colors[COLOR_BACKGROUND]);//same everywhere
+		//canvas.drawColor(color_clear);
 		if(cursor_control!=CC_DISABLED)
 		{
 			if(multiline)
@@ -765,23 +792,23 @@ public class CKBview3 extends ViewGroup
 					{
 						switch(code&~MODMASK)//check long-pressable keys
 						{
-						case KEY_LAYOUT:if(isActive_layout){colorWasSet=true; color2=color_button_pressed;}	break;
-						case KEY_CTRL:	if(isActive_ctrl){	colorWasSet=true; color2=color_button_pressed;}	break;
-						case KEY_ALT:	if(isActive_alt){	colorWasSet=true; color2=color_button_pressed;}	break;
+						case KEY_LAYOUT:if(isActive_layout){colorWasSet=true; color2=theme_colors[COLOR_BUTTON_PRESSED];}	break;
+						case KEY_CTRL:	if(isActive_ctrl){	colorWasSet=true; color2=theme_colors[COLOR_BUTTON_PRESSED];}	break;
+						case KEY_ALT:	if(isActive_alt){	colorWasSet=true; color2=theme_colors[COLOR_BUTTON_PRESSED];}	break;
 
 						case KEY_CAPSLOCK:
-						case KEY_SHIFT:	if(isActive_shift){	colorWasSet=true; color2=color_button_pressed;}	break;
+						case KEY_SHIFT:	if(isActive_shift){	colorWasSet=true; color2=theme_colors[COLOR_BUTTON_PRESSED];}	break;
 						}
 					}
 					if(!colorWasSet&&quickMode==1)
 					{
 						colorWasSet=true;
-						color2=color_button_fast;
+						color2=theme_colors[COLOR_BUTTON_FAST];
 					}
 					if(kx==tap_x&&ky==tap_y)
 					{
 						colorWasSet=true;
-						color2=color_button_pressed;
+						color2=theme_colors[COLOR_BUTTON_PRESSED];
 					}
 					if(colorWasSet)
 						buttonPaint.setColor(color2);

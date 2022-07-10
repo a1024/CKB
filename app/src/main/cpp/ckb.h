@@ -67,10 +67,24 @@ typedef struct LayoutStruct
 	float p_percent, l_percent;//percentage of screen height (width and height get swapped on landscape)
 	int p_height, l_height;//keyboard height in pixels
 } Layout;
+typedef enum ColorIdxEnum
+{
+	COLOR_BACKGROUND,
+	COLOR_BUTTON_IDLE,
+	COLOR_BUTTON_FAST,
+	COLOR_BUTTON_PRESSED,
+	COLOR_LABELS,
+	COLOR_SHADOW_MODIFIER,
+	COLOR_SHADOW_LETTER,
+	COLOR_SHADOW_NON_LETTER,
+	COLOR_PREVIEW_POPUP,
+	THEME_COLOR_COUNT,
+} ColorIdx;
 typedef struct ContextStruct
 {
 	ArrayHandle layouts;//'Layout' array
 	ArrayHandle defaultlang;//string
+	int theme[9];
 } Context;
 typedef struct GlobalsStruct
 {

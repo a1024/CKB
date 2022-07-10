@@ -11,7 +11,7 @@
 #include<errno.h>
 static const char file[]=__FILE__;
 
-//	#define OVERWRITE_EVERYTIME
+//	#define ALWAYS_RESET
 //	#define STORE_ERRORS
 
 const char statefn[]="/data/data/com.example.customkb/state.txt";//UPDATE AT RELEASE
@@ -214,7 +214,7 @@ EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_init(JNIE
 	}
 	if(ret==1)
 	{
-#ifdef OVERWRITE_EVERYTIME
+#ifdef ALWAYS_RESET
 		text=0;
 #else
 		text=load_text(statefn);
@@ -276,13 +276,71 @@ EXTERN_C JNIEXPORT void JNICALL Java_com_example_customkb_CKBnativelib_finish(JN
 	if(glob)
 		free_context(&glob->ctx);
 }
-EXTERN_C JNIEXPORT int JNICALL Java_com_example_customkb_CKBnativelib_getKbHeight(JNIEnv *env, jclass clazz)
+EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_getKbHeight(JNIEnv *env, jclass clazz)
 {
 	Layout *layout=(Layout*)array_at(&glob->ctx.layouts, glob->layoutidx);
 	if(glob->w<glob->h)
 		return layout->p_height;
 	return layout->l_height;
 }
+EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_getColors(JNIEnv *env, jclass clazz)
+{
+	jintArray jArr;
+
+	if(!glob)
+	{
+		LOG_ERROR("getColors(): Globals were not allocated");
+		return 0;
+	}
+
+	jArr=env[0]->NewIntArray(env, THEME_COLOR_COUNT);
+	if(!jArr)
+		return 0;
+	env[0]->SetIntArrayRegion(env, jArr, 0, THEME_COLOR_COUNT, glob->ctx.theme);
+	return jArr;
+}
+EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_getRow(JNIEnv *env, jclass clazz, jint rowIdx)
+{
+	ArrayHandle retRow;
+	Layout *layout;
+	Row *row;
+	int arrSize;
+	jintArray jArr;
+
+	if(!glob)
+	{
+		LOG_ERROR("getRow(): Globals were not allocated");
+		return 0;
+	}
+
+	layout=(Layout*)array_at(&glob->ctx.layouts, glob->layoutidx);
+	if(glob->w<glob->h)//portrait
+		row=(Row*)array_at(&layout->portrait, rowIdx);
+	else
+		row=(Row*)array_at(&layout->landscape, rowIdx);
+
+	arrSize=3+2*(int)row->buttons->count;
+	ARRAY_ALLOC(int, retRow, arrSize, 0);
+
+	int *ptr=(int*)array_at(&retRow, 0);
+	*ptr=row->y1, ++ptr;
+	*ptr=row->y2, ++ptr;
+	*ptr=0, ++ptr;
+	for(int kb=0;kb<(int)row->buttons->count;++kb)
+	{
+		Button *button=(Button*)array_at(&row->buttons, kb);
+		*ptr=button->code, ++ptr;
+		*ptr=button->x2, ++ptr;
+	}
+
+	ptr=(int*)array_at(&retRow, 0);
+	jArr=env[0]->NewIntArray(env, arrSize);
+	env[0]->SetIntArrayRegion(env, jArr, 0, arrSize, ptr);
+
+	array_free(&retRow, 0);
+	return jArr;
+}
+
 EXTERN_C JNIEXPORT int JNICALL Java_com_example_customkb_CKBnativelib_nextLayout(JNIEnv *env, jclass clazz)
 {
 	if(!glob)
@@ -336,12 +394,8 @@ EXTERN_C JNIEXPORT int JNICALL Java_com_example_customkb_CKBnativelib_nextLayout
 	if(!rows)
 		return 0;
 	return (int)rows->count;
-	//layout=(Layout*)array_at(&glob->ctx.layouts, glob->layoutidx);
-	//if(glob->w<glob->h)//portrait
-	//	return (int)layout->portrait->count;
-	//return (int)layout->landscape->count;
 }
-EXTERN_C JNIEXPORT int JNICALL Java_com_example_customkb_CKBnativelib_nextLanguage(JNIEnv *env, jclass clazz)
+EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_nextLanguage(JNIEnv *env, jclass clazz)
 {
 	if(!glob)
 	{
@@ -383,46 +437,7 @@ EXTERN_C JNIEXPORT int JNICALL Java_com_example_customkb_CKBnativelib_nextLangua
 		return 0;
 	return (int)rows->count;
 }
-EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_getRow(JNIEnv *env, jclass clazz, jint rowIdx)
-{
-	ArrayHandle retRow;
-	Layout *layout;
-	Row *row;
-	int arrSize;
 
-	if(!glob)
-	{
-		LOG_ERROR("getRow(): Globals were not allocated");
-		return 0;
-	}
-
-	layout=(Layout*)array_at(&glob->ctx.layouts, glob->layoutidx);
-	if(glob->w<glob->h)//portrait
-		row=(Row*)array_at(&layout->portrait, rowIdx);
-	else
-		row=(Row*)array_at(&layout->landscape, rowIdx);
-
-	arrSize=3+2*(int)row->buttons->count;
-	ARRAY_ALLOC(int, retRow, arrSize, 0);
-
-	int *ptr=(int*)array_at(&retRow, 0);
-	*ptr=row->y1, ++ptr;
-	*ptr=row->y2, ++ptr;
-	*ptr=0, ++ptr;
-	for(int kb=0;kb<(int)row->buttons->count;++kb)
-	{
-		Button *button=(Button*)array_at(&row->buttons, kb);
-		*ptr=button->code, ++ptr;
-		*ptr=button->x2, ++ptr;
-	}
-
-	ptr=(int*)array_at(&retRow, 0);
-	jintArray jArr=env[0]->NewIntArray(env, arrSize);
-	env[0]->SetIntArrayRegion(env, jArr, 0, arrSize, ptr);
-
-	array_free(&retRow, 0);
-	return jArr;
-}
 EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_getNErrors(JNIEnv *env, jclass clazz)
 {
 	if(!errors)

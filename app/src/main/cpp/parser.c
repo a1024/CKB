@@ -9,6 +9,7 @@
 #include<math.h>
 static const char file[]=__FILE__;
 
+//	#define DEBUG_COLORS
 //	#define DEBUG_PARSER
 
 static int	get_lineno(const char *text, int k)
@@ -361,15 +362,33 @@ static int	read_codepoint(const char *text, size_t text_len, int *k)
 	}
 	return code;
 }
+static const char
+	kw_layout[]="layout",
+
+	kw_lang[]="lang", kw_url[]="url",
+	kw_ascii[]="ascii", kw_numpad[]="numpad", kw_decnumpad[]="decnumpad",
+
+	kw_portrait[]="portrait", kw_landscape[]="landscape",
+
+	kw_theme[]="theme",
+	*kw_colors[]=
+{
+	"background",
+
+	"button_idle",
+	"button_fast",
+	"button_pressed",
+
+	"labels",
+
+	"shadow_modifier",
+	"shadow_letter",
+	"shadow_non_letter",
+
+	"preview_popup",
+};
 int 		parse_state(const char *text, size_t text_len, Context *ctx)
 {
-	const char
-		kw_layout[]="layout",
-		kw_lang[]="lang", kw_url[]="url", kw_ascii[]="ascii",
-		kw_numpad[]="numpad", kw_decnumpad[]="decnumpad",
-
-		kw_portrait[]="portrait", kw_landscape[]="landscape";
-
 	int k, len;
 	Layout *layout;
 	ArrayHandle *rows;
@@ -384,13 +403,71 @@ int 		parse_state(const char *text, size_t text_len, Context *ctx)
 	{
 		if(skip_ws(text, text_len, &k))
 			break;
-		if((len=memcmp_ascii_ci(text+k, kw_lang)))//default language declaration
+		if((len=memcmp_ascii_ci(text+k, kw_lang)))		//default language declaration
 		{
 			k+=len;
 			if(skip_ws(text, text_len, &k))
 				return parse_error(text, k, "Expected default language");
 			if(!parse_langname(text, text_len, &k, &ctx->defaultlang))
 				return 0;
+			continue;
+		}
+		if((len=memcmp_ascii_ci(text+k, kw_theme)))		//theme declaration
+		{
+			int lineNo;
+#ifdef DEBUG_COLORS
+			lineNo=get_lineno(text, k);
+			log_error("config", lineNo, "theme block: %.*s", 50, text+k);
+#endif
+			char set_flags[THEME_COLOR_COUNT]={0};
+			k+=len;
+			if(skip_ws(text, text_len, &k)||text[k]!='{')
+				return parse_error(text, k, "Expected opening brace \'{\' of theme declaration");
+			++k;//skip '{'
+			for(int k2=0;k2<THEME_COLOR_COUNT;++k2)
+			{
+				if(skip_ws(text, text_len, &k))
+					return parse_error(text, k, "Expected a color keyword");
+				int kw_idx=-1;
+				for(int k3=0;k3<THEME_COLOR_COUNT;++k3)
+				{
+					if((len=memcmp_ascii_ci(text+k, kw_colors[k3])))
+					{
+						kw_idx=k3;
+						break;
+					}
+				}
+				if(kw_idx==-1)
+					return parse_error(text, k, "Expected a color keyword");
+				if(set_flags[kw_idx])
+					return parse_error(text, k, "Duplicate color");
+				k+=len;
+				set_flags[kw_idx]=1;
+				if(skip_ws(text, text_len, &k)||text[k]!='0'||(k+1<text_len&&(text[k+1]&0xDF)!='X'))
+					return parse_error(text, k, "Expected a hex color value 0xAABBGGRR");
+				k+=2;
+				int nDigits=8;
+				ctx->theme[kw_idx]=(int)read_int(text, text_len, &k, 16, &nDigits);//TODO parse decimal color quartet (eg: 255, 255, 255, 255)
+				if(nDigits!=8)
+					return parse_error(text, k, "Expected a hex color value 0xAABBGGRR");
+
+#ifdef DEBUG_COLORS
+				lineNo=get_lineno(text, k);
+				log_error("config", lineNo, "set %s = 0x%08X", kw_colors[kw_idx], ctx->theme[kw_idx]);
+#endif
+			}
+			for(int k2=0;k2<THEME_COLOR_COUNT;++k2)
+			{
+				if(!set_flags[k2])
+				{
+					lineNo=get_lineno(text, k);
+					log_error("config", lineNo, "Missing color \'%s\', it was set to random color", kw_colors[k2]);//TODO report syntax errors as toast or an overlay (better with multiple errors)
+					ctx->theme[k2]=rand();//assumes RAND_MAX is 0x7FFFFFFF
+				}
+			}
+			if(skip_ws(text, text_len, &k)||text[k]!='}')
+				return parse_error(text, k, "Expected closing brace \'}\' of theme declaration");
+			++k;//skip '}'
 			continue;
 		}
 		len=memcmp_ascii_ci(text+k, kw_layout);			//new layout

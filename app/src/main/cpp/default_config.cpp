@@ -28,6 +28,24 @@ landscape <relative_height>{
 	//each layout should have both orientations
 }
 
+Keyboard theme is set with the 'theme' keyword.
+Color keywords must be followed only by C-style 8-digit hexadecimals:
+
+	0xAARRGGBB (which means: alpha, red, green, blue)
+
+These exact keywords set keyboard colors:
+theme{
+	background		//keyboard 'clear color'
+	button_idle			//non-pressed button color
+	button_fast			//'quick mode' color
+	button_pressed		//pressed button color
+	labels			//text color
+	shadow_modifier		//shadow color for modifier keys
+	shadow_letter		//shadow color for letter buttons
+	shadow_non_letter	//shadow color for non-letter buttons
+	preview_popup	//pressed button popup text color
+}
+
 default layouts that must be present:
 	lang <language_name> (eg: en)
 	url <language_name> (eg: en)
@@ -145,5 +163,17 @@ landscape 0.21{
 }
 
 lang en		//default language
+
+theme{
+	background	0x00202020
+	button_idle		0xC0707070
+	button_fast		0xC0237CE9
+	button_pressed	0xC0FF8040
+	labels		0xFFFFFFFF
+	shadow_modifier		0xC000FF00
+	shadow_letter		0xC0FF0000
+	shadow_non_letter	0xC00000FF
+	preview_popup	0xC0000000
+}
 
 )config";
