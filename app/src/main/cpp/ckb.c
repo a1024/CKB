@@ -230,6 +230,7 @@ EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_init(JNIE
 		{
 			ret=parse_state((char*)text->data, text->count, &glob->ctx);
 			ret&=calc_raster_sizes(&glob->ctx, glob->w, glob->h, glob->w>glob->h);
+			array_free(&text, 0);
 		}
 		else
 			ret=0;
@@ -449,40 +450,30 @@ EXTERN_C JNIEXPORT jstring JNICALL Java_com_example_customkb_CKBnativelib_loadCo
 	array_free(&text, 0);
 	return ret;
 }
-EXTERN_C JNIEXPORT jboolean JNICALL Java_com_example_customkb_CKBnativelib_saveConfig(JNIEnv *env, jclass clazz, jstring text)
+EXTERN_C JNIEXPORT jboolean JNICALL Java_com_example_customkb_CKBnativelib_saveConfig(JNIEnv *env, jclass clazz, jstring str)
 {
-	const char *str;
-	size_t len;
+	const char *text;
+	size_t text_len;
 	Context ctx={0};
 	int success;
 
-	if(!text)
-	{
-		LOG_ERROR("Error: config text is nullptr");
-		return 0;
-	}
-	str=env[0]->GetStringUTFChars(env, text, 0);
 	if(!str)
 	{
 		LOG_ERROR("Error: config text is nullptr");
 		return 0;
 	}
-	len=strlen(text);
-	success=parse_state(text, len, &ctx);
+	text=env[0]->GetStringUTFChars(env, str, 0);
+	if(!text)
+	{
+		LOG_ERROR("Error: config text is nullptr");
+		return 0;
+	}
+	text_len=strlen(text);
+	success=parse_state(text, text_len, &ctx);
 	free_context(&ctx);
 	if(success)
-	{
-		success=save_text(statefn, text, len);
-	}
+		success=save_text(statefn, text, text_len);
 	return success;
-	//if(!success)
-	//{
-	//	free_context(&ctx);
-	//	return 0;
-	//}
-	//free_context(&glob->ctx);
-	//memcpy(&glob->ctx, &ctx, sizeof(Context));
-	//return 1;
 }
 EXTERN_C JNIEXPORT jboolean JNICALL Java_com_example_customkb_CKBnativelib_resetConfig(JNIEnv *env, jclass clazz)
 {

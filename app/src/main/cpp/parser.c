@@ -9,6 +9,8 @@
 #include<math.h>
 static const char file[]=__FILE__;
 
+//	#define DEBUG_PARSER
+
 static int	get_lineno(const char *text, int k)
 {
 	int lineno=0;
@@ -28,6 +30,9 @@ static int	parse_error(const char *text, int k, const char *msg)
 }
 static int	skip_ws(const char *text, size_t text_len, int *k)
 {
+#ifdef DEBUG_PARSER
+	int k0=*k;
+#endif
 	for(;*k<(int)text_len;++*k)
 	{
 		switch(text[*k])
@@ -41,6 +46,9 @@ static int	skip_ws(const char *text, size_t text_len, int *k)
 			}
 			else if(text[*k+1]=='*')//block comment
 			{
+#ifdef DEBUG_PARSER
+				LOG_ERROR("Block comment at %d", *k);//
+#endif
 				*k+=2;
 				for(;*k+1<(int)text_len&&!(text[*k]=='*'&&text[*k+1]=='/');++*k);
 				*k+=*k<(int)text_len&&text[*k]=='*';
@@ -56,6 +64,12 @@ static int	skip_ws(const char *text, size_t text_len, int *k)
 		}
 		break;
 	}
+#ifdef DEBUG_PARSER
+	int print=50;
+	if(print+*k>=(int)text_len)
+		print=(int)text_len-*k;
+	LOG_ERROR("skip_ws: k %d -> %d text=%.*s", k0, *k, print, text+*k);//
+#endif
 	return *k>=(int)text_len;
 }
 static int	acme_strcmp_ascii_ci(const char *text, size_t text_len, int *k, const char *kw)//returns zero on match, otherwise which string comes first alphabetically
@@ -380,6 +394,9 @@ int 		parse_state(const char *text, size_t text_len, Context *ctx)
 			continue;
 		}
 		len=memcmp_ascii_ci(text+k, kw_layout);			//new layout
+#ifdef DEBUG_PARSER
+		LOG_ERROR("k = %d", k);
+#endif
 		if(!len)
 		{
 			parse_error(text, k, "Expected a layout definition");

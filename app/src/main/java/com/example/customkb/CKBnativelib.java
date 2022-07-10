@@ -25,6 +25,6 @@ public class CKBnativelib
 
 	//settings activity
 	public static native String loadConfig();
-	public static native boolean saveConfig(String text);
+	public static native boolean saveConfig(String str);
 	public static native boolean resetConfig();
 }
