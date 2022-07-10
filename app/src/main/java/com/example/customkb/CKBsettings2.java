@@ -515,9 +515,33 @@ public class CKBsettings2 extends ViewGroup
 							state=STATE_ROOT;
 						else if(choice>0&&choice<strings_theme.length)
 						{
-							pick_color_idx=choice-1;
-							colorPicker.setVisibility(VISIBLE);
-							state=STATE_COLORPICKER_PICK;
+								Log.e(TAG, "Calling init...");//
+							CKBnativelib.init(0, 0, w, h);//parse config file
+							int nErrors=CKBnativelib.getNErrors();
+							if(nErrors>0)
+							{
+								Log.e(TAG, "init failed");//
+								for(int ke=0;ke<nErrors;++ke)
+									Log.e(TAG, CKBnativelib.getError(ke));
+							}
+							else
+							{
+								int[] theme_colors=CKBnativelib.getColors();
+								if(theme_colors==null)
+								{
+									Log.e(TAG, "Failed to retrieve theme colors, fallback to random");
+									theme_colors=new int[CKBview3.THEME_COLOR_COUNT];
+									for(int k=0;k<CKBview3.THEME_COLOR_COUNT;++k)
+										theme_colors[k]=(int)(255*Math.random())<<24|(int)(255*Math.random())<<16|(int)(255*Math.random())<<8|(int)(255*Math.random());
+								}
+								pick_color_idx=choice-1;
+								colorPicker.ch_rgb=theme_colors[pick_color_idx];
+								colorPicker.setChoice(false);
+
+								colorPicker.setVisibility(VISIBLE);
+								state=STATE_COLORPICKER_PICK;
+							}
+							//CKBnativelib.finish();//native CRASH
 						}
 						break;
 					case STATE_COLORPICKER_PICK:
@@ -529,7 +553,7 @@ public class CKBsettings2 extends ViewGroup
 								toast(String.format("Failed to save '%s' as 0x%08X", strings_theme[pick_color_idx+1], colorPicker.ch_rgb));
 							pick_color_idx=-1;
 							colorPicker.setVisibility(INVISIBLE);
-							state=STATE_ROOT;
+							state=STATE_COLORPICKER_MENU;
 						}
 						break;
 					case STATE_RESET:

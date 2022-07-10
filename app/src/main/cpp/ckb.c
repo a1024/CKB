@@ -11,6 +11,7 @@
 #include<errno.h>
 static const char file[]=__FILE__;
 
+//	#define DEBUG_HEAP
 //	#define ALWAYS_RESET//don't use this macro, just press reset in settings
 //	#define STORE_ERRORS
 
@@ -64,17 +65,29 @@ int 		glob_alloc()
 void		free_row(void *data)
 {
 	ArrayHandle *row=(ArrayHandle*)data;
+#ifdef DEBUG_HEAP
+	LOG_ERROR("Freeing row=%p...", row);
+#endif
 	array_free(row, 0);
 }
 void		free_layout(void *data)
 {
 	Layout *layout=(Layout*)data;
+#ifdef DEBUG_HEAP
+	LOG_ERROR("Freeing layout=%p...", layout);
+	LOG_ERROR("Freeing layout->lang=%p...", layout->lang);
+	LOG_ERROR("Freeing layout->portrait=%p...", layout->portrait);
+	LOG_ERROR("Freeing layout->landscape=%p...", layout->landscape);
+#endif
 	array_free(&layout->lang, 0);
 	array_free(&layout->portrait, free_row);
 	array_free(&layout->landscape, free_row);
 }
 void		free_context(Context *ctx)
 {
+#ifdef DEBUG_HEAP
+	LOG_ERROR("Freeing ctx->layouts=%p...", ctx->layouts);
+#endif
 	array_free(&ctx->layouts, free_layout);
 	array_free(&ctx->defaultlang, 0);
 }
@@ -203,10 +216,6 @@ EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_init(JNIE
 	int ret;
 	ArrayHandle text;
 
-	//ret=env[0]->GetJavaVM(env, &jvm);
-	//if(ret)
-	//	LOG_ERROR("GetJavaVM() returned %d", ret);
-
 	ret=glob_alloc();
 	if(ret)
 	{
@@ -276,6 +285,7 @@ EXTERN_C JNIEXPORT void JNICALL Java_com_example_customkb_CKBnativelib_finish(JN
 {
 	if(glob)
 		free_context(&glob->ctx);
+	//free(glob);
 }
 EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_getKbHeight(JNIEnv *env, jclass clazz)
 {
