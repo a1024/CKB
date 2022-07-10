@@ -216,7 +216,7 @@ public class ColorPicker extends ViewGroup
 		@Override public void beforeTextChanged(CharSequence s, int start, int count, int after){}
 		@Override public void onTextChanged(CharSequence s, int start, int before, int count)
 		{
-			Log.e(TAG, String.format("Box %d (case %d) updated: '%s'", viewId, viewId-(startId+1), s));
+			//Log.e(TAG, String.format("Box %d (case %d) updated: '%s'", viewId, viewId-(startId+1), s));
 			if(ignore_boxes)
 				return;
 			try
@@ -264,7 +264,7 @@ public class ColorPicker extends ViewGroup
 			}
 			catch(NumberFormatException e)
 			{
-				Log.e(TAG, String.format("Number parse error: %s", e.getMessage()));
+				//Log.e(TAG, String.format("Number parse error: %s", e.getMessage()));
 			}
 		}
 		@Override public void afterTextChanged(Editable s){}
