@@ -11,6 +11,7 @@
 #include<errno.h>
 static const char file[]=__FILE__;
 
+	#define DEBUG_LANG
 //	#define DEBUG_HEAP
 //	#define ALWAYS_RESET//don't use this macro, just press reset in settings
 //	#define STORE_ERRORS
@@ -210,6 +211,25 @@ ArrayHandle	get_rows(int layoutidx)
 		LOG_ERROR("Rows pointer == nullptr");
 	return rows;
 }
+#ifdef DEBUG_LANG
+const char*	layoutType2str(Layout const *layout)
+{
+	switch(layout->type)
+	{
+	case LAYOUT_UNINITIALIZED:	return "UNINITIALIZED";//illegal value
+
+	//these layouts must have language 'lang':
+	case LAYOUT_LANG:			return "lang";
+	case LAYOUT_URL:			return "url";
+
+	//these layouts must appear only once:
+	case LAYOUT_ASCII:			return "ascii";
+	case LAYOUT_NUMPAD:			return "numpad";
+	case LAYOUT_DECNUMPAD:		return "decnumpad";
+	}
+	return "UNIDENTIFIED";
+}
+#endif
 
 EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_init(JNIEnv *env, jclass clazz, jint mode, jint decnumpad, jint width, jint height)
 {
@@ -429,9 +449,15 @@ EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_nextLangu
 	}
 	Layout *layout=(Layout*)array_at(&glob->ctx.layouts, glob->layoutidx);
 	int nlayouts=(int)glob->ctx.layouts->count, idx=-1;
+#ifdef DEBUG_LANG
+	LOG_ERROR("nextLanguage(): Current layout is [%d/%d] %s %s", glob->layoutidx, nlayouts, layoutType2str(layout), layout->lang?(char*)layout->lang->data:"(not a language)");
+#endif
 	for(int kl=(glob->layoutidx+1)%nlayouts;kl!=glob->layoutidx;kl=(kl+1)%nlayouts)
 	{
 		Layout *l2=(Layout*)array_at(&glob->ctx.layouts, kl);
+#ifdef DEBUG_LANG
+		LOG_ERROR("nextLanguage(): Testing layout [%d] %s %s", kl, layoutType2str(l2), l2->lang?(char*)l2->lang->data:"(not a language)");
+#endif
 		if(l2->type==LAYOUT_LANG||l2->type==LAYOUT_URL)
 		{
 			if((layout->type==LAYOUT_LANG||layout->type==LAYOUT_URL)&&l2->type!=layout->type)
@@ -525,6 +551,18 @@ EXTERN_C JNIEXPORT jboolean JNICALL Java_com_example_customkb_CKBnativelib_store
 }
 EXTERN_C JNIEXPORT jboolean JNICALL Java_com_example_customkb_CKBnativelib_resetConfig(JNIEnv *env, jclass clazz)
 {
-	size_t len=strlen(default_config);
+	size_t len;
+	Context dummy_ctx;
+	int success;
+
+	len=strlen(default_config);
+
+	success=parse_state(default_config, len, &dummy_ctx, 0, 0, 0);
+	if(!success)
+	{
+		LOG_ERROR("Internal error in default config file");
+		return 0;
+	}
+
 	return save_text(stateFilename, default_config, len);
 }

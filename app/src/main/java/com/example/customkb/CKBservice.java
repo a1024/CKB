@@ -60,6 +60,7 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 
 	RelativeLayout main_layout;
 	CKBview3 myView;
+	long thread_id=0;
 	//Create and return the view hierarchy used for the input area (such as a soft keyboard).
 	//This will be called once, when the input area is first displayed.
 	//You can return null to have no input area; the default implementation returns null.
@@ -101,7 +102,10 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 	@Override public void onStartInputView(EditorInfo info, boolean restarting)
 	{
 		if(myView!=null)
+		{
+			thread_id=Thread.currentThread().getId();
 			myView.startCKB(info);
+		}
 		setExtractViewShown(false);
 	}
 
@@ -435,7 +439,15 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 			//case CKBview3.SK_SPK:
 			//case CKBview3.SK_FUN:
 				if((flags&1)!=0)
-					myView.switchLayout();
+				{
+					if(Thread.currentThread().getId()==thread_id)
+						myView.switchLayout();
+					else
+					{
+						myView.pend_switch=1;
+						myView.postInvalidate();
+					}
+				}
 				//	myView.kb.selectLayout(key);
 				break;
 			//case CKBview3.MODMASK|CKBview3.KEY_TRANSPARENT:

@@ -223,6 +223,7 @@ public class CKBview3 extends ViewGroup
 	Timer timer=new Timer();
 	int timerOn=0;//0: off, 1: turboTask, 2: longPressTask
 	int touchId_timer;
+	public int pend_switch=0;//1: switch layout, 2: switch language
 	class TurboTask extends TimerTask
 	{
 		public int code;
@@ -261,7 +262,9 @@ public class CKBview3 extends ViewGroup
 				break;
 
 			case MODMASK|KEY_LAYOUT:
-				switchLanguage();
+				pend_switch=2;
+				postInvalidate();
+				//switchLanguage();//CRASH
 				break;
 			}
 			done=true;
@@ -436,14 +439,20 @@ public class CKBview3 extends ViewGroup
 	{
 		int nRows=CKBnativelib.nextLayout();
 		if(nRows<1)
+		{
+			addError("Failed to switch layout");
 			return;
+		}
 		get_layout(nRows);
 	}
 	public void switchLanguage()
 	{
 		int nRows=CKBnativelib.nextLanguage();
 		if(nRows<1)
+		{
+			addError("Failed to switch language");
 			return;
+		}
 		get_layout(nRows);
 	}
 	public void initCKB(CKBservice _service)
@@ -722,6 +731,14 @@ public class CKBview3 extends ViewGroup
 	}
 	@Override public void onDraw(Canvas canvas)
 	{
+		if(pend_switch!=0)
+		{
+			if(pend_switch==1)
+				switchLayout();
+			else if(pend_switch==2)
+				switchLanguage();
+			pend_switch=0;
+		}
 		float radius=10;
 
 		canvas.drawColor(theme_colors[COLOR_BACKGROUND]);//same everywhere
@@ -965,6 +982,7 @@ public class CKBview3 extends ViewGroup
 	//	case MODMASK|KEY_TRANSPARENT:
 		case MODMASK|KEY_SETTINGS:
 	//	case MODMASK|KEY_UNICODE:
+		case MODMASK|KEY_LAYOUT:
 			return false;
 		}
 		return true;
