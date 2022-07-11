@@ -11,13 +11,17 @@
 #include<errno.h>
 static const char file[]=__FILE__;
 
-	#define USE_CCS_UTF8
+
 //	#define DEBUG_FILE
 //	#define DEBUG_ERROR
 //	#define DEBUG_LANG
 //	#define DEBUG_HEAP
+
+	#define STORE_ERRORS//disable this macro when using LOG_ERROR for debug
+
+	#define USE_CCS_UTF8//non-standard & apparently does nothing
 //	#define ALWAYS_RESET//don't use this macro, just press reset in settings
-	#define STORE_ERRORS
+
 
 const char stateFilename[]="/data/data/com.example.customkb/state.txt";//TODO UPDATE AT RELEASE
 const char log_tag[]="customkb";
