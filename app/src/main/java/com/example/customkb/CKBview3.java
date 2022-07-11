@@ -77,7 +77,14 @@ public class CKBview3 extends ViewGroup
 		KEY_F9=28,
 		KEY_F10=29,
 		KEY_F11=30,
-		KEY_F12=31;
+		KEY_F12=31,
+
+		KEY_CUT=32,
+		KEY_COPY=33,
+		KEY_PASTE=34,
+		KEY_SELECTALL=35,
+
+		KEY_MENU=36;
 	public static class ModKey
 	{
 		final int code;//code here is UNUSED (idx of ModKey)
@@ -130,6 +137,13 @@ public class CKBview3 extends ViewGroup
 		new ModKey(KEY_F10, "F10"),
 		new ModKey(KEY_F11, "F11"),
 		new ModKey(KEY_F12, "F12"),
+
+		new ModKey(KEY_CUT, "Cut"),
+		new ModKey(KEY_COPY, "Copy"),
+		new ModKey(KEY_PASTE, "Paste"),
+		new ModKey(KEY_SELECTALL, "Select\nAll"),
+
+		new ModKey(KEY_MENU, "Menu"),
 	};
 
 	//dimensions

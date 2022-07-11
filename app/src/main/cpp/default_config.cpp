@@ -63,7 +63,7 @@ examples:
 	'q', 113, 0x71 all mean the same character
 	'\U0001F602', 128514, 0x1F602 all mean the famous 'tears of joy' emoji
 
-list special keys:
+list of special keys:
 	nab (stands for 'not a button', an empty space)
 	layout (changes layout, long press to switch language)
 	settings
@@ -90,16 +90,21 @@ list special keys:
 	prscr (print screen)
 	pause
 	f1 ... f12
+	cut
+	copy
+	paste
+	selectall
+	menu
 */
 
 layout lang en
 portrait 0.36{//0.384
-27 1, '\t' 1, caps 1, ctrl 1, alt 1, home 1, end 1, pgup 1, pgdn 1, 127 1;
+27 1, copy 1, paste 1, caps 1, ctrl 1, home 1, end 1, pgup 1, pgdn 1, 127 1;
 '1' 1, '2' 1, '3' 1, '4' 1, '5' 1, '6' 1, '7' 1, '8' 1, '9' 1, '0' 1;
 'q' 1, 'w' 1, 'e' 1, 'r' 1, 't' 1, 'y' 1, 'u' 1, 'i' 1, 'o' 1, 'p' 1;
 nab 0.5, 'a' 1, 's' 1, 'd' 1, 'f' 1, 'g' 1, 'h' 1, 'j' 1, 'k' 1, 'l' 1, nab 0.5;
 shift 1.5, 'z' 1, 'x' 1, 'c' 1, 'v' 1, 'b' 1, 'n' 1, 'm' 1, '\b' 1.5;
-layout 1.25, settings 1.25, ' ' 5, '.' 1, '\n' 1.5;
+layout 1.25, settings 1.25, '\t' 1, ' ' 3, ',' 1, '.' 1, '\n' 1.5;
 }
 landscape 0.32{
 settings 1, 'q' 1, 'w' 1, 'e' 1, 'r' 1, 't' 1, nab 1, 27 1, home 1, end 1, '7' 1, '8' 1, '9' 1, '0' 1, 'y' 1, 'u' 1, 'i' 1, 'o' 1, 'p' 1;
@@ -109,27 +114,27 @@ layout 1, nab 0.75, 'z' 1, 'x' 1, 'c' 1, 'v' 1, 'b' 1, nab 0.25, ' ' 3, '1' 1, '
 
 layout lang ar
 portrait 0.36{//0.384
-27 1, '\t' 1, caps 1, ctrl 1, alt 1, home 1, end 1, pgup 1, pgdn 1, 127 1;
+27 1, copy 1, paste 1, caps 1, ctrl 1, home 1, end 1, pgup 1, pgdn 1, 127 1;
 '١' 1, '٢' 1, '٣' 1, '٤' 1, '٥' 1, '٦' 1, '٧' 1, '٨' 1, '٩' 1, '٠' 1;
 'ض' 1, 'ص' 1, 'ث' 1, 'ق' 1, 'ف' 1, 'غ' 1, 'ع' 1, 'ه' 1, 'خ' 1, 'ح' 1, 'ج' 1;
 'ش' 1, 'س' 1, 'ي' 1, 'ب' 1, 'ل' 1, 'ا' 1, 'ت' 1, 'ن' 1, 'م' 1, 'ك' 1, 'ط' 1;
 'ذ' 1, 'ء' 1, 'ؤ' 1, 'ر' 1, 'ى' 1, 'ة' 1, 'و' 1, 'ز' 1, 'ظ' 1, 'د' 1, '\b' 1;
-layout 1.25, settings 1.25, ' ' 4, '،' 1, '.' 1, '\n' 1.5;
+layout 1, settings 1, '؟' 1, '\t' 1, ' ' 3, '،' 1, '.' 1, '\n' 1;
 }
 landscape 0.32{
-nab 2/3,			'ض' 1, 'ص' 1, 'ث' 1, 'ق' 1, 'ف' 1, 'غ' 1, nab 1/3,	27 1, home 1, end 1,	'٧' 1, '٨' 1, '٩' 1, '،' 1, nab 1,		'ع' 1, 'ه' 1, 'خ' 1, 'ح' 1, 'ج' 1;
+nab 2/3,			'ض' 1, 'ص' 1, 'ث' 1, 'ق' 1, 'ف' 1, 'غ' 1, nab 1/3,	27 1, home 1, end 1,	'٧' 1, '٨' 1, '٩' 1, '،' 1, '؟' 1,		'ع' 1, 'ه' 1, 'خ' 1, 'ح' 1, 'ج' 1;
 settings 1,			'ش' 1, 'س' 1, 'ي' 1, 'ب' 1, 'ل' 1, 'ا' 1,			'\t' 1, ctrl 1, alt 1,	'٤' 1, '٥' 1, '٦' 1, '.' 1, nab 1/3,	'ت' 1, 'ن' 1, 'م' 1, 'ك' 1, 'ط' 1, nab 2/3;
 layout 1, nab 0.25, 'ذ' 1, 'ء' 1, 'ؤ' 1, 'ر' 1, 'ى' 1, nab 0.75,		' ' 2,			'٠' 1,	'١' 1, '٢' 1, '٣' 1, 'ة' 1,				'و' 1, 'ز' 1, 'ظ' 1, 'د' 1, '\b' 1, '\n' 1;
 }
 
 layout lang ru
 portrait 0.36{//0.384
-27 1, '\t' 1, caps 1, ctrl 1, alt 1, home 1, end 1, pgup 1, pgdn 1, 127 1;
+27 1, copy 1, paste 1, caps 1, ctrl 1, home 1, end 1, pgup 1, pgdn 1, 127 1;
 '1' 1, '2' 1, '3' 1, '4' 1, '5' 1, '6' 1, '7' 1, '8' 1, '9' 1, '0' 1;
 'й' 1, 'ц' 1, 'у' 1, 'к' 1, 'е' 1, 'н' 1, 'г' 1, 'ш' 1, 'щ' 1, 'з' 1, 'х' 1;
 'ф' 1, 'ы' 1, 'в' 1, 'а' 1, 'п' 1, 'р' 1, 'о' 1, 'л' 1, 'д' 1, 'ж' 1, 'э' 1;
 shift 1, 'я' 1, 'ч' 1, 'с' 1, 'м' 1, 'и' 1, 'т' 1, 'ь' 1, 'б' 1, 'ю' 1, '\b' 1;
-layout 1, settings 1, 'ё' 1, ' ' 4, 'ъ' 1, '.' 1, '\n' 1;
+layout 1, settings 1, 'ё' 1, '\t' 1, ' ' 3, 'ъ' 1, '.' 1, '\n' 1;
 }
 landscape 0.32{
 settings 1,			'й' 1, 'ц' 1, 'у' 1, 'к' 1, 'е' 1, 'ё' 1, 'н' 1,	27 1, home 1, end 1,	'7' 1, '8' 1, '9' 1, '0' 1,				'г' 1, 'ш' 1, 'щ' 1, 'з' 1, 'х' 1, 'ъ' 1;
@@ -139,7 +144,7 @@ layout 1, nab 0.75,	'я' 1, 'ч' 1, 'с' 1, 'м' 1, 'и' 1, nab 1, nab 0.25,	' '
 
 layout url en
 portrait 0.36{//0.384
-27 1, '\t' 1, caps 1, ctrl 1, alt 1, home 1, end 1, pgup 1, pgdn 1, 127 1;
+27 1, copy 1, paste 1, caps 1, ctrl 1, home 1, end 1, pgup 1, pgdn 1, 127 1;
 '1' 1, '2' 1, '3' 1, '4' 1, '5' 1, '6' 1, '7' 1, '8' 1, '9' 1, '0' 1;
 'q' 1, 'w' 1, 'e' 1, 'r' 1, 't' 1, 'y' 1, 'u' 1, 'i' 1, 'o' 1, 'p' 1;
 nab 0.5, 'a' 1, 's' 1, 'd' 1, 'f' 1, 'g' 1, 'h' 1, 'j' 1, 'k' 1, 'l' 1, nab 0.5;
@@ -161,7 +166,7 @@ portrait 0.45{
 'q' 1, 'w' 1, 'e' 1, 'r' 1, 't' 1, 'y' 1, 'u' 1, 'i' 1, 'o' 1, 'p' 1;
 nab 0.5, 'a' 1, 's' 1, 'd' 1, 'f' 1, 'g' 1, 'h' 1, 'j' 1, 'k' 1, 'l' 1, nab 0.5;
 shift 1.5, 'z' 1, 'x' 1, 'c' 1, 'v' 1, 'b' 1, 'n' 1, 'm' 1, '\b' 1.5;
-layout 1.25, settings 1.25, ',' 1, ' ' 4, '.' 1, '\n' 1.5;
+layout 1.25, settings 1.25, '\t' 1, ' ' 3, ',' 1, '.' 1, '\n' 1.5;
 }
 landscape 0.48{
 '~' 1, ';' 1, ':' 1, '\'' 1, '\"' 1, '\\' 1, '|' 1, '<' 1, '>' 1, '/' 1, '?' 1, '&' 1, '*' 1, '(' 1, ')' 1;//15

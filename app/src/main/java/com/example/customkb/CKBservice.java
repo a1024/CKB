@@ -485,6 +485,50 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 				else
 					sendAsIs(key, inCon);
 				break;
+			case CKBview3.MODMASK|CKBview3.KEY_CUT:
+				{
+					boolean success;
+					if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.N)//TODO: test this
+					{
+						success=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_COPY));
+						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_COPY));
+						if(success)
+							displayToast("Copied to clipboard");
+					}
+					else
+						success=copySelectionToClipboardLoud(inCon);
+					if(success)
+					{
+						inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL));
+						inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL));
+					}
+					else
+						displayToast("Failed to copy");
+				}
+				break;
+			case CKBview3.MODMASK|CKBview3.KEY_COPY:
+				{
+					boolean success;
+					if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.N)//TODO: test this
+					{
+						success=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_COPY));
+						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_COPY));
+						if(success)
+							displayToast("Copied to clipboard");
+					}
+					else
+						success=copySelectionToClipboardLoud(inCon);
+					if(!success)
+						displayToast("Failed to copy");
+				}
+				break;
+			case CKBview3.MODMASK|CKBview3.KEY_PASTE:
+				{
+					boolean success=pasteFromClipboard(inCon);
+					if(!success)
+						displayToast("Failed to paste");
+				}
+				break;
 			case 'C':case 'c':
 				if(myView.isActive_ctrl)
 				{
@@ -493,6 +537,10 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 					{
 						success=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_COPY));
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_COPY));
+						if(success)
+							displayToast("Copied to clipboard");
+						else
+							displayToast("Failed to copy");
 					}
 					else
 						success=copySelectionToClipboardLoud(inCon);
@@ -505,26 +553,9 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 			case 'V':case 'v':
 				if(myView.isActive_ctrl)
 				{
-					ClipboardManager clipboard=(ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
-					if(clipboard==null)
-					{
-						Log.e(TAG, "clipboard == null");
-						return;
-					}
-					ClipData.Item item=clipboard.getPrimaryClip().getItemAt(0);
-					CharSequence cs=item.getText();
-					String str;
-					if(cs!=null)
-						str=cs.toString();
-					else
-					{
-						Uri url=item.getUri();
-						if(url==null)
-							return;
-						str=url.toString();
-					}
-					inCon.commitText(str, str.length());
-				//	displayToast("Pasted from clipboard");
+					boolean success=pasteFromClipboard(inCon);
+					if(!success)
+						displayToast("Failed to paste");
 					myView.isActive_ctrl=false;
 				}
 				else
@@ -585,6 +616,31 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 			return true;
 		}
 		return false;
+	}
+	boolean pasteFromClipboard(InputConnection inCon)
+	{
+			ClipboardManager clipboard=(ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
+			if(clipboard==null)
+			{
+				Log.e(TAG, "clipboard == null");
+				return false;
+			}
+			ClipData.Item item=clipboard.getPrimaryClip().getItemAt(0);
+			CharSequence cs=item.getText();
+			String str;
+			if(cs!=null)
+				str=cs.toString();
+			else
+			{
+				Uri url=item.getUri();
+				if(url==null)
+					return false;
+				str=url.toString();
+			}
+			inCon.commitText(str, 1);//2020-07-11
+		//	inCon.commitText(str, str.length());
+		//	displayToast("Pasted from clipboard");
+			return true;
 	}
 	void sendAsIs(int key, InputConnection inCon)
 	{

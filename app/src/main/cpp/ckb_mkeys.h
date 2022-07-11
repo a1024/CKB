@@ -45,6 +45,11 @@ CKBKEY(KEY_F9, "F9", "f9")
 CKBKEY(KEY_F10, "F10", "f10")
 CKBKEY(KEY_F11, "F11", "f11")
 CKBKEY(KEY_F12, "F12", "f12")
+
+CKBKEY(KEY_CUT, "Cut", "cut")
+CKBKEY(KEY_COPY, "Copy", "copy")
+CKBKEY(KEY_PASTE, "paste", "paste")
+CKBKEY(KEY_SELECTALL, "selectall", "selectall")
 CKBKEY(KEY_MENU, "Menu", "menu")
 
 #endif
