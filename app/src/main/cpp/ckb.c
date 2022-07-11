@@ -576,6 +576,7 @@ EXTERN_C JNIEXPORT jboolean JNICALL Java_com_example_customkb_CKBnativelib_saveC
 	free_context(&ctx);
 	if(success)
 		success=save_text(stateFilename, text, text_len);
+	env[0]->ReleaseStringUTFChars(env, str, text);
 	return success;
 }
 EXTERN_C JNIEXPORT jboolean JNICALL Java_com_example_customkb_CKBnativelib_storeThemeColor(JNIEnv *env, jclass clazz, jint color, jint idx)

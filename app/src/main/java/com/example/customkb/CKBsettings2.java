@@ -155,7 +155,7 @@ public class CKBsettings2 extends ViewGroup
 		box_config.setInputType(InputType.TYPE_CLASS_TEXT);
 		box_config.setSingleLine(false);
 		box_config.setImeOptions(EditorInfo.IME_FLAG_NO_ENTER_ACTION);
-		box_config.setHorizontallyScrolling(false);
+		box_config.setHorizontallyScrolling(false);//FIXME: NO WORD WRAP!
 		//box_config.setHorizontalScrollBarEnabled(false);
 
 		addView(multiline);
