@@ -1,14 +1,31 @@
 #include"array.h"
+#include"unicode_search.h"
 #include<stdio.h>
 #include<sys/stat.h>
 #include<ctype.h>
 #include<stdarg.h>
 #include<string.h>
 #include<stdlib.h>
+#ifdef _MSC_VER
+#define WIN32_LEAN_AND_MEAN
+#include<Windows.h>
+#endif
 static const char file[]=__FILE__;
 #define 	G_BUF_SIZE	1024
 char 		g_buf[G_BUF_SIZE]={0};
 int			nErrors=0;
+#ifdef _MSC_VER
+void		set_console_buffer_size(short w, short h)
+{
+	COORD coords={w, h};
+	void *handle=GetStdHandle(STD_OUTPUT_HANDLE);
+	int success=SetConsoleScreenBufferSize(handle, coords);
+	if(!success)
+		printf("Failed to resize console buffer: %d\n\n", GetLastError());
+}
+#else
+#define		set_console_buffer_size(...)
+#endif
 int			log_error(const char *f, int line, const char *format, ...)
 {
 	va_list args;
@@ -105,6 +122,14 @@ int 		save_text(const char *filename, const char *text, size_t len)
 	fclose(f);
 	return 1;
 }
+int			pause()
+{
+	int k;
+
+	printf("Enter 0 to continue: ");
+	scanf("%d", &k);
+	return k;
+}
 
 typedef struct QueryStruct
 {
@@ -122,6 +147,7 @@ ArrayHandle db=0;//'Query' array
 ArrayHandle text=0;
 ptrdiff_t idx=0, lineno=0;
 
+#if 0
 int skip_ws()
 {
 	for(;idx<(ptrdiff_t)text->count;)
@@ -186,6 +212,7 @@ int skip_till(const char *label)
 	}
 	return 0;
 }
+#endif
 
 int parse_error(const char *pos, const char *format, ...)
 {
@@ -253,9 +280,32 @@ RangeHandle codepoint_addrange(CodepointHandle *c, const char *start, const char
 	return c[0]->names+c[0]->nnames-1;
 }
 
-const char* skip_till_ws(const char *p, const char *end)
+const char* skip_till(const char *p, const char *end, const char *delim)
 {
-	for(;p<end&&!isspace(*p);++p);
+	const char *p2;
+
+	for(;p<end;++p)//O(n^2)
+		for(p2=delim;*p2;++p2)
+			if(*p==*p2)
+				return p;
+	return p;
+}
+const char* skip(const char *p, const char *end, const char *delim)
+{
+	const char *p2;
+	
+found:
+	if(p<end)
+	{
+		for(p2=delim;*p2;++p2)//O(n^2)
+		{
+			if(*p==*p2)
+			{
+				++p;
+				goto found;
+			}
+		}
+	}
 	return p;
 }
 int query_threeway(const void *pair, const void *key)
@@ -266,21 +316,19 @@ int query_threeway(const void *pair, const void *key)
 	
 	for(;*L&&R<r->end&&*L==*R;++L, ++R);
 	
-	if(!*L&&!*R)
+	if(!*L&&R>=r->end)
 		return 0;
 	
-	char lc=*L, rc=*R;
+	char lc=*L, rc=R<r->end?*R:127;
 	if(!lc)
 		lc=127;
-	if(!rc)
-		rc=127;
 	return (lc>rc)-(lc<rc);
 }
 int codepoint_threeway(const void *left, const void *right)
 {
 	const int *c1=(const int*)left, *c2=(const int *)right;
 
-	return (c1>c2)-(c1<c2);
+	return (*c1>*c2)-(*c1<*c2);
 }
 int	update_db(CodepointHandle code)
 {
@@ -290,30 +338,31 @@ int	update_db(CodepointHandle code)
 	//		possibly add new word to db		//BST?
 	//		add unique codepoint to word
 
+	const char delim[]=" -\t\n\r";//word separators
+
 	int k, idx;
 	RangeHandle range;
 	Range r2;
 	Query *q;
 
-	for(k=0;k<code->nnames;++k)
+	for(k=0;k<code->nnames;++k)//for each name alias
 	{
 		range=code->names+k;
-		r2.start=range->start;
-		for(;;)
+		for(r2.start=range->start;;r2.start=skip(r2.end, range->end, delim))//for each word in name
 		{
-			r2.end=skip_till_ws(r2.start,range->end);
+			r2.end=skip_till(r2.start, range->end, delim);
 			if(r2.start>=r2.end)
 				break;
-			if(!binary_search(db->data, db->count, sizeof(Query), query_threeway, &r2, &idx))
+			if(!binary_search(db->data, db->count, db->esize, query_threeway, &r2, &idx))//word is new
 			{
 				q=array_insert(&db, idx, 0, 1, 1, 0);
 				q->word=array_construct(r2.start, sizeof(char), r2.end-r2.start, 1, 1, __LINE__);
 				q->codes=array_construct(&code->code, sizeof(int), 1, 1, 0, __LINE__);
 			}
-			else
+			else//word was already there
 			{
 				q=(Query*)array_at(&db, idx);
-				if(!binary_search(q->codes->data, q->codes->count, sizeof(int), codepoint_threeway, &code->code, &idx))
+				if(!binary_search(q->codes->data, q->codes->count, q->codes->esize, codepoint_threeway, &code->code, &idx))//codepoint is new
 					array_insert(&q->codes, idx, &code->code, 1, 1, 0);
 			}
 		}
@@ -346,6 +395,11 @@ int read_hex(const char **p)
 	return val;
 }
 
+int strmatch(const char *str, const char *label)
+{
+	for(;*str&&*label&&*str==*label;++str, ++label);
+	return !*label;
+}
 int strstrn(const char **str, const char **labels, int nlabels)//advances *str to first label found and returns label index
 {
 	const char *p;
@@ -355,9 +409,9 @@ int strstrn(const char **str, const char **labels, int nlabels)//advances *str t
 	{
 		for(k=0;k<nlabels;++k)
 		{
-			if(!strcmp(p, labels[k]))
+			if(strmatch(p, labels[k]))
 			{
-				*str=p;
+				*str=p+strlen(labels[k]);
 				return k;
 			}
 		}
@@ -367,18 +421,21 @@ int strstrn(const char **str, const char **labels, int nlabels)//advances *str t
 const char kw_char[]="<char", kw_endchar[]="</char>", kw_endtag[]="/>",
 	kw_cp[]="cp=\"",
 	kw_na[]="na=\"",
+	kw_na1[]="na1=\"",
 	kw_namealias[]="<name-alias alias=\"";
 const char
 	*search_cp[]={kw_cp, kw_endchar, kw_endtag},
-	*search_na[]={kw_na, kw_endchar, kw_endtag},
-	*search_alias[]={kw_namealias, kw_endchar, kw_endtag};
+	*search_na[]={kw_na, kw_na1, kw_endchar, kw_endtag},
+	*search_alias[]={kw_namealias, kw_endchar, kw_endtag},
+	*search_end[]={kw_endtag, kw_endchar};
 int parse_ucd()
 {
 	const char *p, *p2;
-	int idx;
+	int idx, status;
 	CodepointHandle code;
 	RangeHandle range;
 	
+	status=1;
 	code=codepoint_alloc(0);
 	if(!code)
 		return 0;
@@ -386,45 +443,75 @@ int parse_ucd()
 	{
 		p+=sizeof(kw_char)-1;
 		
-		idx=strstrn(&p, search_cp, sizeof(search_cp));
+		idx=strstrn(&p, search_cp, SIZEOF(search_cp));
 		if(idx==-1)//missing end tag
 		{
-			parse_error(p, "Missing closing char tag");
+			status=parse_error(p, "Missing closing char tag");
 			break;
 		}
 		if(idx||*p=='\"')//no codepoint
 		{
-			parse_error(p, "Missing codepoint tag");
+			status=parse_error(p, "Missing codepoint tag");
 			continue;
 		}
-		p+=sizeof(kw_cp)-1;
 		code->code=read_hex(&p);
 		code->nnames=0;
+		//if(code->code==0x1F602)//"face with tears of joy"
+		//	code->code=0x1F602;//
 
-		idx=strstrn(&p, search_na, sizeof(search_na));
-		if(idx==-1)//missing end tag
+		for(int k=0;k<2;++k)
 		{
-			parse_error(p, "Missing closing char tag");
-			break;
-		}
-		if(!idx&&*p!='\"'&&(p2=strchr(p, '\"')))
-		{
-			range=codepoint_addrange(&code, p, p2);
-			p=p2+1;
+			idx=strstrn(&p, search_na, SIZEOF(search_na));
+			if(idx==-1)//missing end tag
+			{
+				status=parse_error(p, "Missing closing char tag");
+				break;
+			}
+			if(idx>1)//end of this char
+				continue;
+			if(*p=='\"')
+				++p;
+			else
+			{
+				if(!(p2=strchr(p, '\"')))
+				{
+					status=parse_error(p, "Missing closing double quote");
+					goto exit;
+				}
+				range=codepoint_addrange(&code, p, p2);
+				p=p2+1;
+			}
 		}
 
 		for(;;)
 		{
-			idx=strstrn(&p, kw_namealias, sizeof(kw_namealias));
+			idx=strstrn(&p, search_alias, SIZEOF(search_alias));
 			if(idx==-1)//missing end tag
 			{
-				parse_error(p, "Missing closing char tag");
+				status=parse_error(p, "Missing closing char tag");
 				goto exit;
 			}
-			if(idx||*p=='\"'||!(p2=strchr(p, '\"')))
+			if(idx)//end of this char
 				break;
-			range=codepoint_addrange(&code, p, p2);
-			p=p2+1;
+			if(*p=='\"')//no alias
+				++p;
+			else
+			{
+				if(!(p2=strchr(p, '\"')))
+				{
+					status=parse_error(p, "Missing closing double quote");
+					goto exit;
+				}
+				range=codepoint_addrange(&code, p, p2);
+				p=p2+1;
+			}
+
+			idx=strstrn(&p, search_end, SIZEOF(search_end));
+			if(idx==-1)
+			{
+				status=parse_error(p, "Missing closing tag");
+				goto exit;
+			}
 		}
 
 		update_db(code);//codepoint is "ready"
@@ -452,7 +539,7 @@ int parse_ucd()
 	}
 exit:
 	free(code);
-	return 1;
+	return status;
 }
 #if 0
 int parse_xml_opentag(Range *ret)
@@ -495,6 +582,24 @@ int parse_xml()
 
 int main(int argc, char **argv)
 {
+#if 1
+	printf("Unicode search\n");
+	for(;;)
+	{
+		printf("\nQuery: ");
+		scanf("%s", g_buf);
+		ArrayHandle results=unicode_search(g_buf);
+
+		printf("%d results\n", results->count);
+		for(int k=0;k<(int)results->count;++k)
+		{
+			CodeRank *cr=(CodeRank*)array_at(&results, k);
+			printf("%3d\t\\U%08X\n", cr->rank, cr->code);
+		}
+	}
+#endif
+#if 0
+	set_console_buffer_size(80, 4096);
 	printf(
 		"UnicodeSearch\n\n"
 		"This program only parses the \'ucd.all.flat.xml\' file available at:\n"
@@ -513,7 +618,9 @@ int main(int argc, char **argv)
 	}
 
 	ARRAY_ALLOC(Query, db, 0, 0);
-	parse_ucd();
+	int result=parse_ucd();
+	if(!result)
+		printf("Parse error");
 	array_free(&text, 0);
 
 	//preview result
@@ -541,7 +648,7 @@ int main(int argc, char **argv)
 	STR_ALLOC(text, 0);
 	const char header_queries1[]="const char *queries[]=\n{\n", header_queries2[]="};\n";
 	STR_APPEND(text, header_queries1, sizeof(header_queries1)-1, 1);
-	for(int k=0;k<(ptrdiff_t)db->count;++k)
+	for(int k=0;k<(ptrdiff_t)db->count;++k)			//print queries array
 	{
 		q=(Query*)array_at(&db, k);
 		int printed=snprintf(g_buf, G_BUF_SIZE, "\t\"%s\",\n", (char*)q->word->data);
@@ -551,14 +658,14 @@ int main(int argc, char **argv)
 
 	const char header_codes1[]="int allcodes[]=\n{\n", header_codes2[]="};\n";
 	STR_APPEND(text, header_codes1, sizeof(header_codes1)-1, 1);
-	for(int k=0;k<(ptrdiff_t)db->count;++k)
+	for(int k=0;k<(ptrdiff_t)db->count;++k)			//print codepoints array
 	{
 		q=(Query*)array_at(&db, k);
 		STR_APPEND(text, "\t", 1, 1);
 		for(int k2=0;k2<(int)q->codes->count;++k2)
 		{
 			int *code=(int*)array_at(&q->codes, k2);
-			int printed=snprintf(g_buf, G_BUF_SIZE, "%d,%c", *code, k2+1<(int)q->codes->count?' ':'\n');
+			int printed=snprintf(g_buf, G_BUF_SIZE, "0x%X,%c", *code, k2+1<(int)q->codes->count?' ':'\n');
 			STR_APPEND(text, g_buf, printed, 1);
 		}
 	}
@@ -567,10 +674,13 @@ int main(int argc, char **argv)
 	const char header_indices1[]="int indices[]=\n{\n", header_indices2[]="\n};\n";
 	STR_APPEND(text, header_indices1, sizeof(header_indices1)-1, 1);
 	int idx=0;
-	for(int k=0;k<(ptrdiff_t)db->count;++k)
+	for(int k=0;k<(ptrdiff_t)db->count;++k)			//print indices array
 	{
 		q=(Query*)array_at(&db, k);
+		if(!(k&15))
+			STR_APPEND(text, "\t", 1, 1);
 		int printed=snprintf(g_buf, G_BUF_SIZE, "%d,%c", idx, (k+1)&15?' ':'\n');
+		STR_APPEND(text, g_buf, printed, 1);
 		idx+=q->codes->count;
 	}
 	STR_APPEND(text, header_indices2, sizeof(header_indices2)-1, 1);
@@ -580,7 +690,8 @@ int main(int argc, char **argv)
 
 	int success=save_text(argv[2], text->data, text->count);//save as argv[2]
 	array_free(&text, 0);
-
-	printf("Done.\n");
+#endif
+	printf("Quitting...\n");
+	pause();
 	return 0;
 }
