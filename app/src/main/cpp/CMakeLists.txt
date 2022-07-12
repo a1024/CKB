@@ -9,6 +9,8 @@ add_library(
 	ckb.c
 	parser.c
 	default_config.cpp
+
+	unicode.c
 )
 
 # add lib dependencies

@@ -95,7 +95,7 @@ typedef struct GlobalsStruct
 
 	Context ctx;
 	ModeType mode;
-	int layoutidx;
+	int layoutidx, prevlayoutidx;
 } Globals;
 
 extern Globals *glob;
@@ -113,6 +113,14 @@ void		free_context(Context *ctx);
 //	success=parse_state(0, 0, 0, /*(ArrayHandle*)*/ &text, color, idx);
 int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle *aText, int color_value, int color_idx);
 int 		calc_raster_sizes(Context *ctx, int width, int height, int is_landscape);
+
+
+//unicode
+typedef struct CodeRankStruct
+{
+	int code, rank;
+} CodeRank;
+ArrayHandle unicode_search(const char *query);//returns CodeRank array
 
 
 #endif //CUSTOMKB_CKB_H

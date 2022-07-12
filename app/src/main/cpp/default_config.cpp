@@ -60,8 +60,8 @@ C-style line and block comments are supported
 
 describe button_code with its unicode codepoint or the C-style character literal
 examples:
-	'q', 113, 0x71 all mean the same character
-	'\U0001F602', 128514, 0x1F602 all mean the famous 'tears of joy' emoji
+	'q', 113, and 0x71 all mean the same character
+	'\U0001F602', 128514, and 0x1F602 all mean the famous 'tears of joy' emoji
 
 list of special keys:
 	nab (stands for 'not a button', an empty space)

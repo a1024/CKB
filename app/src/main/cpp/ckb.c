@@ -333,6 +333,7 @@ EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_init(JNIE
 				glob->layoutidx=find_layout_idx(LAYOUT_NUMPAD, 0);
 			break;
 		}
+		glob->prevlayoutidx=glob->layoutidx;
 		Layout *l2=array_at(&glob->ctx.layouts, glob->layoutidx);
 //#ifdef DEBUG_FILE
 //		LOG_ERROR("Selected layout %d: %s %s", glob->layoutidx, layoutType2str(l2), l2->type==LAYOUT_LANG||l2->type==LAYOUT_URL?(char*)l2->lang->data:"(not a language)");//
@@ -424,7 +425,7 @@ EXTERN_C JNIEXPORT int JNICALL Java_com_example_customkb_CKBnativelib_nextLayout
 		LOG_ERROR("nextLayout(): Globals were not allocated");
 		return -1;
 	}
-	if(glob->layoutidx<0)
+	if(glob->layoutidx<0||glob->layoutidx>=(int)glob->ctx.layouts->count)
 	{
 		LOG_ERROR("nextLayout(): Invalid layout idx");
 		return -1;
@@ -454,7 +455,8 @@ EXTERN_C JNIEXPORT int JNICALL Java_com_example_customkb_CKBnativelib_nextLayout
 		case MODE_TEXT:
 		case MODE_PASSWORD:
 		case MODE_URL:case MODE_EMAIL:
-			idx=find_layout_idx(LAYOUT_LANG, glob->ctx.defaultlang);
+			idx=glob->prevlayoutidx;
+		//	idx=find_layout_idx(LAYOUT_LANG, glob->ctx.defaultlang);
 			break;
 		default://'-Wall' was a mistake
 			break;
@@ -465,6 +467,7 @@ EXTERN_C JNIEXPORT int JNICALL Java_com_example_customkb_CKBnativelib_nextLayout
 	}
 	if(idx<0)
 		return 0;
+	glob->prevlayoutidx=glob->layoutidx;
 	glob->layoutidx=idx;
 	ArrayHandle rows=get_rows(glob->layoutidx);
 	if(!rows)
@@ -525,6 +528,58 @@ EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_nextLangu
 	}
 	return (int)rows->count;
 }
+EXTERN_C JNIEXPORT jstring JNICALL Java_com_example_customkb_CKBnativelib_getLayoutName(JNIEnv *env, jclass clazz)
+{
+	Layout const *layout;
+	const char *a;
+	jstring result;
+
+	if(!glob)
+	{
+		LOG_ERROR("getLayoutName(): Globals were not allocated");
+		return 0;
+	}
+	if(glob->layoutidx<0||glob->layoutidx>=(int)glob->ctx.layouts->count)
+	{
+		LOG_ERROR("getLayoutName(): Invalid layout idx");
+		return 0;
+	}
+	layout=(Layout const*)array_at(&glob->ctx.layouts, glob->layoutidx);
+	switch(layout->type)
+	{
+	case LAYOUT_UNINITIALIZED://illegal value
+		a="Layout\nError";
+		break;
+
+	//these layouts must have language 'lang':
+	case LAYOUT_LANG:
+	case LAYOUT_URL:
+		a=(char*)layout->lang->data;
+		break;
+
+	//these layouts must appear only once:
+	case LAYOUT_ASCII:
+		a="ASCII";
+		break;
+	case LAYOUT_NUMPAD:
+		a="NumPad";
+		break;
+	case LAYOUT_DECNUMPAD:
+		a="DecNumPad";
+		break;
+
+	default:
+		a="Layout\nError";
+		break;
+	}
+	result=env[0]->NewStringUTF(env, a);
+	if(!result)
+	{
+		LOG_ERROR("getLayoutName(): NewStringUTF returned nullptr");
+		return 0;
+	}
+	return result;
+}
 
 EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_getNErrors(JNIEnv *env, jclass clazz)
 {
@@ -539,6 +594,38 @@ EXTERN_C JNIEXPORT jstring JNICALL Java_com_example_customkb_CKBnativelib_getErr
 	ArrayHandle *error=(ArrayHandle*)array_at(&errors, errorIdx);
 	return env[0]->NewStringUTF(env, (char*)error[0]->data);
 }
+
+
+//unicode search
+EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_searchUnicode(JNIEnv *env, jclass clazz, jstring query)
+{
+	const char *input;
+	ArrayHandle result;
+	jsize count;
+	jintArray jResult;
+
+	input=env[0]->GetStringUTFChars(env, query, 0);
+	if(!input)
+	{
+		LOG_ERROR("searchUnicode(): query is nullptr");
+		return 0;
+	}
+	result=unicode_search(input);
+	if(result->count)
+	{
+		count=(jsize)result->count*2;//count*2 because each result is {int code, rank;}
+		jResult=env[0]->NewIntArray(env, count);
+		if(!jResult)
+			LOG_ERROR("searchUnicode(): NewIntArray returned nullptr");
+		else
+			env[0]->SetIntArrayRegion(env, jResult, 0, count, (int*)result->data);
+	}
+	else
+		jResult=0;
+	array_free(&result, 0);
+	return jResult;
+}
+
 
 //settings activity
 EXTERN_C JNIEXPORT jstring JNICALL Java_com_example_customkb_CKBnativelib_loadConfig(JNIEnv *env, jclass clazz)

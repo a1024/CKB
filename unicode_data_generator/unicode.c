@@ -48,7 +48,7 @@ ArrayHandle unicode_search(const char *query)//returns CodeRank array
 {
 	ArrayHandle result;
 	Range range;
-	int idx;
+	size_t idx;
 	CodeRank *cr;
 
 	ARRAY_ALLOC(CodeRank, result, 0, 0);

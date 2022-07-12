@@ -10,6 +10,8 @@ import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.icu.lang.UCharacter;
+import android.os.Build;
 import android.text.InputType;
 import android.text.StaticLayout;
 import android.text.TextPaint;
@@ -28,6 +30,7 @@ import android.widget.TextView;
 import androidx.core.graphics.drawable.DrawableCompat;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -166,6 +169,7 @@ public class CKBview3 extends ViewGroup
 	public boolean
 		numeric_signed=false,//extra buttons: + -
 		numeric_decimal=false;//extra buttons: . /
+	public String layoutName;
 
 	//cursor control:
 	//{(MSB) start, end, shift (LSB)}
@@ -342,13 +346,15 @@ public class CKBview3 extends ViewGroup
 			urgentMsg.add(str);
 		Log.e(TAG, str);
 	}
-	public static String getLabel(int code)
+	public String getLabel(int code)
 	{
 		if((code&MODMASK)!=0)
 		{
 			code&=~MODMASK;
 			if(code>=mkeys.length)
 				return "INVALID";
+			if(code==KEY_LAYOUT)
+				return layoutName;
 			ModKey key=mkeys[code];
 			return key.label;
 		}
@@ -455,6 +461,7 @@ public class CKBview3 extends ViewGroup
 		ViewGroup.LayoutParams lp=getLayoutParams();
 		lp.height=kb_h=CKBnativelib.getKbHeight();
 		setLayoutParams(lp);
+		layoutName=CKBnativelib.getLayoutName();
 	}
 	public void switchLayout()
 	{
@@ -544,6 +551,28 @@ public class CKBview3 extends ViewGroup
 	}
 	public void startCKB(EditorInfo info)
 	{
+	/*	if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)//Character.getName()		FIXME this is a test, remove this
+		//if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)//UCharacter
+		{
+			String query="joy";
+			int[] codes=CKBnativelib.searchUnicode(query);
+			//int code=UCharacter.getCharFromName(query);
+			if(codes==null)
+				addError(String.format("unicodeSearch(): No results for '%s'", query));
+			else
+			{
+				try
+				{
+					for(int k=0;k<codes.length;k+=2)
+						addError(String.format(loc, "unicodeSearch(%s): r=%d, 0x%08X, %s", query, codes[k+1], codes[k], Character.getName(codes[k])));
+				}
+				catch(IllegalArgumentException e)
+				{
+					addError(String.format(loc, "unicodeSearch(%s): %s", query, e.getMessage()));
+				}
+			}
+		}//*/
+
 		if(DEBUG_MODE)
 			Log.e(TAG, String.format(loc, "inputType = 0x%08X", info.inputType));
 		switch(info.inputType&InputType.TYPE_MASK_CLASS)
@@ -670,11 +699,11 @@ public class CKBview3 extends ViewGroup
 		ccGridX=ceilMultiple((int)(textSize*1.5), w);
 		ccGridY=kb_h/layout.size();
 
-		ViewGroup.LayoutParams lp=getLayoutParams();
+		LayoutParams lp=getLayoutParams();
 		if(lp==null)
 		{
 			Log.e(TAG, "CKBview3.LayoutParams == null");
-			lp=new ViewGroup.LayoutParams(w, kb_h);
+			lp=new LayoutParams(w, kb_h);
 		}
 		else
 		{

@@ -72,9 +72,9 @@ void 				memrotate(void *p, size_t byteoffset, size_t bytesize, void *temp)
 		memcpy(buf, temp, bytesize-byteoffset);
 	}
 }
-int 				binary_search(void *base, size_t count, size_t esize, int (*threeway)(const void*, const void*), const void *val, size_t *idx)
+int 				binary_search(const void *base, size_t count, size_t esize, int (*threeway)(const void*, const void*), const void *val, size_t *idx)
 {
-	unsigned char *buf=(unsigned char*)base;
+	const unsigned char *buf=(const unsigned char*)base;
 	ptrdiff_t L=0, R=(ptrdiff_t)count-1, mid;
 	int ret;
 
@@ -94,7 +94,7 @@ int 				binary_search(void *base, size_t count, size_t esize, int (*threeway)(co
 		}
 	}
 	if(idx)
-		*idx=L+(L<count&&threeway(buf+L*esize, val)<0);
+		*idx=L+(L<(ptrdiff_t)count&&threeway(buf+L*esize, val)<0);
 	return 0;
 }
 void 				isort(void *base, size_t count, size_t esize, int (*threeway)(const void*, const void*))
@@ -183,7 +183,7 @@ ArrayHandle		array_construct(const void *src, size_t esize, size_t count, size_t
 
 	srcsize=count*esize;
 	dstsize=rep*srcsize;
-	for(cap=esize+pad*esize;cap<dstsize;cap<<=1);
+	cap=dstsize+pad*esize;
 	arr=(ArrayHandle)malloc(sizeof(ArrayHeader)+cap);
 	ASSERT_P(arr);
 	arr->count=count;
@@ -268,6 +268,27 @@ void*			array_insert(ArrayHandle *arr, size_t idx, const void *data, size_t coun
 	else
 		memset(arr[0]->data+start, 0, dstsize);
 	return arr[0]->data+start;
+}
+void*			array_erase(ArrayHandle *arr, size_t idx, size_t count, void (*destructor)(void*))
+{
+	size_t k;
+
+	ASSERT_P(*arr);
+	if(arr[0]->count<idx+count)
+	{
+		LOG_ERROR("array_erase() out of bounds: idx=%lld count=%lld size=%lld", (long long)idx, (long long)count, (long long)arr[0]->count);
+		if(arr[0]->count<idx)
+			return 0;
+		count=arr[0]->count-idx;//erase till end of array if OOB
+	}
+	if(destructor)
+	{
+		for(k=0;k<count;++k)
+			destructor(array_at(arr, idx+k));
+	}
+	memmove(arr[0]->data+idx*arr[0]->esize, arr[0]->data+(idx+count)*arr[0]->esize, (arr[0]->count-(idx+count))*arr[0]->esize);
+	arr[0]->count-=count;
+	return arr[0]->data+idx*arr[0]->esize;
 }
 void			array_fit(ArrayHandle *arr, size_t pad)//can be nullptr
 {

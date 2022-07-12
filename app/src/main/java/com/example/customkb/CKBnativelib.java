@@ -21,9 +21,13 @@ public class CKBnativelib
 	//returns -1 in case of error
 	public static native int nextLayout();
 	public static native int nextLanguage();//returns nRows in selected layout
+	public static native String getLayoutName();
 
 	public static native int getNErrors();
 	public static native String getError(int errorIdx);
+
+	//unicode search
+	public static native int[] searchUnicode(String query);
 
 
 	//settings activity
