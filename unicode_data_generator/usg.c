@@ -1,4 +1,4 @@
-#include"array.h"
+//#include"array.h"
 #include"unicode_search.h"
 #include<stdio.h>
 #include<sys/stat.h>
@@ -131,10 +131,21 @@ int			pause()
 	return k;
 }
 
+typedef struct CodeDescrStruct
+{
+	int code;
+	ArrayHandle description;
+} CodeDescr;
 typedef struct QueryStruct
 {
 	ArrayHandle word, codes;
 } Query;
+void free_descr(void* data)
+{
+	CodeDescr *d=(CodeDescr*)data;
+
+	array_free(&d->description, 0);
+}
 void free_query(void *data)
 {
 	Query *q=(Query*)data;
@@ -142,10 +153,11 @@ void free_query(void *data)
 	array_free(&q->word, 0);
 	array_free(&q->codes, 0);
 }
-ArrayHandle db=0;//'Query' array
+static ArrayHandle db=0;//'Query' array
+static ArrayHandle descriptions=0;//'CodeDescr' array
 
-ArrayHandle text=0;
-ptrdiff_t idx=0, lineno=0;
+static ArrayHandle text=0;
+static ptrdiff_t idx=0, lineno=0;
 
 #if 0
 int skip_ws()
@@ -254,11 +266,29 @@ CodepointHandle codepoint_alloc(int code)
 	ret->nnames=0;
 	return ret;
 }
-RangeHandle codepoint_addrange(CodepointHandle *c, const char *start, const char *end)
+int range_threeway(const void *left, const void *right)
+{
+	Range const *r1=(Range const*)left, *r2=(Range const*)right;
+	const char *L=r1->start, *R=r2->start;
+
+	for(;L<r1->end&&R<r2->end&&toupper(*L)==toupper(*R);++L, ++R);
+	
+	if(L>=r1->end&&R>=r2->end)
+		return 0;
+
+	char
+		lc=L<r1->end?toupper(*L):127,
+		rc=R<r2->end?toupper(*R):127;
+	return (lc>rc)-(lc<rc);
+}
+RangeHandle codepoint_addrange(CodepointHandle *c, Range const *range)
 {
 	void *p;
 	int bytesize;
-	
+	size_t idx;
+
+	if(binary_search(c[0]->names, c[0]->nnames, sizeof(Range), range_threeway, range, &idx))
+		return c[0]->names+idx;
 	bytesize=sizeof(Codepoint)+(c[0]->nnames+1)*sizeof(Range);
 	if(c[0]->cap<bytesize)
 	{
@@ -267,8 +297,9 @@ RangeHandle codepoint_addrange(CodepointHandle *c, const char *start, const char
 			return 0;
 		*c=(CodepointHandle)p;
 	}
-	c[0]->names[c[0]->nnames].start=start;
-	c[0]->names[c[0]->nnames].end=end;
+	c[0]->names[c[0]->nnames]=*range;
+	//c[0]->names[c[0]->nnames].start=start;
+	//c[0]->names[c[0]->nnames].end=end;
 	//if(range)
 	//	c[0]->names[c[0]->nnames]=*range;
 	//else
@@ -330,6 +361,13 @@ int codepoint_threeway(const void *left, const void *right)
 
 	return (*c1>*c2)-(*c1<*c2);
 }
+int descr_threeway(const void *left, const void *right)
+{
+	CodeDescr const *descr=(CodeDescr const*)left;
+	const int *code=(const int*)right;
+
+	return (descr->code>*code)-(descr->code<*code);
+}
 int	update_db(CodepointHandle code)
 {
 	//for each name
@@ -338,12 +376,15 @@ int	update_db(CodepointHandle code)
 	//		possibly add new word to db		//BST?
 	//		add unique codepoint to word
 
-	const char delim[]=" -\t\n\r";//word separators
+	static const char delim[]=" -\t\n\r";//word separators
+	static const char desc_sep[]="; ";
 
-	int k, idx;
+	int k;
+	size_t idx;
 	RangeHandle range;
 	Range r2;
 	Query *q;
+	CodeDescr *cd;
 
 	for(k=0;k<code->nnames;++k)//for each name alias
 	{
@@ -364,6 +405,24 @@ int	update_db(CodepointHandle code)
 				q=(Query*)array_at(&db, idx);
 				if(!binary_search(q->codes->data, q->codes->count, q->codes->esize, codepoint_threeway, &code->code, &idx))//codepoint is new
 					array_insert(&q->codes, idx, &code->code, 1, 1, 0);
+			}
+		}
+	}
+
+	if(binary_search(descriptions->data, descriptions->count, descriptions->esize, descr_threeway, &code->code, &idx))
+		LOG_ERROR("code %08X, already exists at %d", code->code, idx);
+	else
+	{
+		if(code->nnames>0)
+		{
+			cd=array_insert(&descriptions, idx, 0, 1, 1, 0);
+			cd->code=code->code;
+			cd->description=array_construct(code->names->start, sizeof(char), code->names->end-code->names->start, 1, 1, __LINE__);
+			for(k=1;k<code->nnames;++k)
+			{
+				Range *r=code->names+k;
+				STR_APPEND(cd->description, desc_sep, sizeof(desc_sep)-1, 1);
+				STR_APPEND(cd->description, r->start, r->end-r->start, 1);
 			}
 		}
 	}
@@ -433,6 +492,7 @@ int parse_ucd()
 	const char *p, *p2;
 	int idx, status;
 	CodepointHandle code;
+	Range r;
 	RangeHandle range;
 	
 	status=1;
@@ -478,7 +538,9 @@ int parse_ucd()
 					status=parse_error(p, "Missing closing double quote");
 					goto exit;
 				}
-				range=codepoint_addrange(&code, p, p2);
+				r.start=p;
+				r.end=p2;
+				range=codepoint_addrange(&code, &r);
 				p=p2+1;
 			}
 		}
@@ -502,7 +564,9 @@ int parse_ucd()
 					status=parse_error(p, "Missing closing double quote");
 					goto exit;
 				}
-				range=codepoint_addrange(&code, p, p2);
+				r.start=p;
+				r.end=p2;
+				range=codepoint_addrange(&code, &r);
 				p=p2+1;
 			}
 
@@ -605,9 +669,9 @@ int main(int argc, char **argv)
 		"This program only parses the \'ucd.all.flat.xml\' file available at:\n"
 		"\tftp://ftp.unicode.org/\n\n"
 		);
-	if(argc!=3)
+	if(argc!=4)
 	{
-		printf("Usage:  program  input_file_name  output_file_name\n");
+		printf("Usage:\n  program  input  output  output2\n");
 		return 1;
 	}
 	text=load_text(argv[1]);
@@ -618,6 +682,7 @@ int main(int argc, char **argv)
 	}
 
 	ARRAY_ALLOC(Query, db, 0, 0);
+	ARRAY_ALLOC(CodeDescr, descriptions, 0, 0);
 	int result=parse_ucd();
 	if(!result)
 		printf("Parse error");
@@ -625,11 +690,11 @@ int main(int argc, char **argv)
 
 	//preview result
 	Query *q;
-	int count=(int)db->count;
-	if(count>200)
-		count=200;
+	ptrdiff_t count=(ptrdiff_t)db->count;
+	if(count>50)
+		count=50;
 	printf("DB has %d words, first %d words:\n", db->count, count);
-	for(int k=0;k<count;++k)
+	for(ptrdiff_t k=0;k<count;++k)
 	{
 		q=(Query*)array_at(&db, k);
 		printf("%s:", (char*)q->word->data);
@@ -648,7 +713,7 @@ int main(int argc, char **argv)
 	STR_ALLOC(text, 0);
 	const char header_queries1[]="const char *queries[]=\n{\n", header_queries2[]="};\n";
 	STR_APPEND(text, header_queries1, sizeof(header_queries1)-1, 1);
-	for(int k=0;k<(ptrdiff_t)db->count;++k)			//print queries array
+	for(ptrdiff_t k=0;k<(ptrdiff_t)db->count;++k)			//print queries array
 	{
 		q=(Query*)array_at(&db, k);
 		int printed=snprintf(g_buf, G_BUF_SIZE, "\t\"%s\",\n", (char*)q->word->data);
@@ -658,7 +723,7 @@ int main(int argc, char **argv)
 
 	const char header_codes1[]="int allcodes[]=\n{\n", header_codes2[]="};\n";
 	STR_APPEND(text, header_codes1, sizeof(header_codes1)-1, 1);
-	for(int k=0;k<(ptrdiff_t)db->count;++k)			//print codepoints array
+	for(ptrdiff_t k=0;k<(ptrdiff_t)db->count;++k)			//print codepoints array
 	{
 		q=(Query*)array_at(&db, k);
 		STR_APPEND(text, "\t", 1, 1);
@@ -673,8 +738,8 @@ int main(int argc, char **argv)
 
 	const char header_indices1[]="int indices[]=\n{\n", header_indices2[]="\n};\n";
 	STR_APPEND(text, header_indices1, sizeof(header_indices1)-1, 1);
-	int idx=0;
-	for(int k=0;k<(ptrdiff_t)db->count;++k)			//print indices array
+	size_t idx=0;
+	for(ptrdiff_t k=0;k<(ptrdiff_t)db->count;++k)			//print indices array
 	{
 		q=(Query*)array_at(&db, k);
 		if(!(k&15))
@@ -684,11 +749,31 @@ int main(int argc, char **argv)
 		idx+=q->codes->count;
 	}
 	STR_APPEND(text, header_indices2, sizeof(header_indices2)-1, 1);
-	printf("%d codes total\n", idx);
+	printf("allcodes array size: %d codes\n", idx);
 	
 	array_free(&db, free_query);
 
-	int success=save_text(argv[2], text->data, text->count);//save as argv[2]
+	int success;
+	success=save_text(argv[2], text->data, text->count);//save as argv[2]
+	array_free(&text, 0);
+
+
+	STR_ALLOC(text, 0);
+
+	const char header_descr1[]="CodeDescr descriptions[]=\n{\n", header_descr2[]="};\n";
+	STR_APPEND(text, header_descr1, sizeof(header_descr1)-1, 1);
+	for(ptrdiff_t k=0;k<(ptrdiff_t)descriptions->count;++k)	//print descriptions
+	{
+		CodeDescr *descr=(CodeDescr*)array_at(&descriptions, k);
+		int printed=snprintf(g_buf, G_BUF_SIZE, "\t{0x%X, \"%s\"},\n", descr->code, (char*)descr->description->data);
+		STR_APPEND(text, g_buf, printed, 1);
+	}
+	STR_APPEND(text, header_descr2, sizeof(header_descr2)-1, 1);
+	printf("%d unique codes\n", idx);
+
+	array_free(&descriptions, free_descr);
+
+	success=save_text(argv[3], text->data, text->count);//save as argv[3]
 	array_free(&text, 0);
 #endif
 	printf("Quitting...\n");
