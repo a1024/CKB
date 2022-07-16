@@ -27,7 +27,8 @@ public class TouchInfo
 	public static final int S_DOWN=0, S_MOVED=1, S_UP=2, S_CANCEL=3;
 	public static class Pointer
 	{
-		int state, id;
+		int state,//down/up
+			id;//order of appearance
 		float x, y, prevx, prevy, startx, starty;
 		Pointer(int _id, float _x, float _y){state=S_DOWN; id=_id; x=_x; y=_y; startx=_x; starty=_y;}
 		void update(float _x, float _y)

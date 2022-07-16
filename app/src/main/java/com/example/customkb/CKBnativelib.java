@@ -19,6 +19,7 @@ public class CKBnativelib
 	//returns nRows in selected layout
 	//returns 0 if layout/lang switch is not allowed (numpad)
 	//returns -1 in case of error
+	public static native int currentLayout();
 	public static native int nextLayout();
 	public static native int nextLanguage();//returns nRows in selected layout
 	public static native String getLayoutName();

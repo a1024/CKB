@@ -418,8 +418,32 @@ EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_getR
 	return jArr;
 }
 
+EXTERN_C JNIEXPORT int JNICALL Java_com_example_customkb_CKBnativelib_currentLayout(JNIEnv *env, jclass clazz)
+{
+	ArrayHandle rows;
+
+	if(!glob)
+	{
+		LOG_ERROR("currentLayout(): Globals were not allocated");
+		return -1;
+	}
+	if(glob->layoutidx<0||glob->layoutidx>=(int)glob->ctx.layouts->count)
+	{
+		LOG_ERROR("currentLayout(): Invalid layout idx");
+		return -1;
+	}
+
+	rows=get_rows(glob->layoutidx);
+	if(!rows)
+		return 0;
+	return (int)rows->count;
+}
 EXTERN_C JNIEXPORT int JNICALL Java_com_example_customkb_CKBnativelib_nextLayout(JNIEnv *env, jclass clazz)
 {
+	Layout *layout;
+	int idx;
+	ArrayHandle rows;
+
 	if(!glob)
 	{
 		LOG_ERROR("nextLayout(): Globals were not allocated");
@@ -439,8 +463,8 @@ EXTERN_C JNIEXPORT int JNICALL Java_com_example_customkb_CKBnativelib_nextLayout
 	default://'-Wall' was a mistake
 		break;
 	}
-	Layout *layout=(Layout*)array_at(&glob->ctx.layouts, glob->layoutidx);
-	int idx=-1;
+	layout=(Layout*)array_at(&glob->ctx.layouts, glob->layoutidx);
+	idx=-1;
 	switch(layout->type)
 	{
 	case LAYOUT_LANG:
@@ -469,7 +493,7 @@ EXTERN_C JNIEXPORT int JNICALL Java_com_example_customkb_CKBnativelib_nextLayout
 		return 0;
 	glob->prevlayoutidx=glob->layoutidx;
 	glob->layoutidx=idx;
-	ArrayHandle rows=get_rows(glob->layoutidx);
+	rows=get_rows(glob->layoutidx);
 	if(!rows)
 		return 0;
 	return (int)rows->count;

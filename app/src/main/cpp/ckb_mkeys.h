@@ -51,5 +51,6 @@ CKBKEY(KEY_COPY, "Copy", "copy")
 CKBKEY(KEY_PASTE, "paste", "paste")
 CKBKEY(KEY_SELECTALL, "selectall", "selectall")
 CKBKEY(KEY_MENU, "Menu", "menu")
+CKBKEY(KEY_UNICODE, "Unicode", "unicode")
 
 #endif

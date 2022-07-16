@@ -438,7 +438,7 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 			//case CKBview3.SK_ALL:
 			//case CKBview3.SK_SPK:
 			//case CKBview3.SK_FUN:
-				if((flags&1)!=0)
+				if((flags&1)!=0)//down
 				{
 					if(Thread.currentThread().getId()==thread_id)
 						myView.switchLayout();
@@ -454,6 +454,7 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 			//	transparent=!transparent;
 			//	break;
 			case CKBview3.MODMASK|CKBview3.KEY_SETTINGS://TODO: keyboard settings activity (unicode search, layout customization, color theme)
+				if((flags&1)!=0)//down
 				{
 					//Intent intent=new Intent(this, SettingsActivity.class);
 					Intent intent=new Intent(this, CKBactivity.class);//https://developer.android.com/training/basics/firstapp/starting-activity
@@ -651,7 +652,7 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 			else
 				key=Character.toLowerCase(key);
 			CharSequence cs=CharBuffer.wrap(Character.toChars(key));
-			inCon.commitText(cs, cs.length());
+			inCon.commitText(cs, 1);
 		}
 	}
 }

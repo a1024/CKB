@@ -18,6 +18,11 @@ static const char* skip_till_ws(const char *p)
 	for(;*p&&!isspace(*p);++p);
 	return p;
 }
+static const char* skip_ws(const char *p)
+{
+	for(;*p&&isspace(*p);++p);
+	return p;
+}
 static int strrange_ci_threeway(const void *left, const void *right)
 {
 	const char *L=*(const char**)left;
@@ -55,7 +60,7 @@ ArrayHandle unicode_search(const char *query)//returns CodeRank array
 	CodeRank *cr;
 
 	ARRAY_ALLOC(CodeRank, result, 0, 0);
-	for(range.start=query;*range.start;range.start=range.end)
+	for(range.start=query;*range.start;range.start=skip_ws(range.end))
 	{
 		range.end=skip_till_ws(range.start);
 		if(binary_search(queries, nqueries, sizeof(void*), strrange_ci_threeway, &range, &idx))//<- can use standard bsearch here
