@@ -462,8 +462,7 @@ public class CKBview3 extends ViewGroup
 			if(code>=mKeys.length)
 				return "INVALID";
 			//if(code==KEY_LAYOUT)
-			if(code==' ')
-				return layoutName;
+			//	return layoutName;
 			ModKey key=mKeys[code];
 			return key.label;
 		}
@@ -501,6 +500,7 @@ public class CKBview3 extends ViewGroup
 		case 29:	return "Group\nSeparator";
 		case 30:	return "Record\nSeparator";
 		case 31:	return "Unit\nSeparator";
+		case ' ':	return layoutName;
 		case 127:	return "Del";
 		}
 		StringBuilder b=new StringBuilder();
@@ -647,7 +647,7 @@ public class CKBview3 extends ViewGroup
 		}
 		setLayoutParams(lp);
 	}
-	private void get_layout(int layoutIdx, boolean hasExtension)
+	private void switch_layout(int layoutIdx, boolean hasExtension)
 	{
 		int[] nextLayout=CKBnativelib.getLayout(layoutIdx, hasExtension);
 		if(nextLayout==null)
@@ -655,6 +655,7 @@ public class CKBview3 extends ViewGroup
 			addError(String.format(loc, "Failed to switch layout to idx=%d%s", layoutIdx, hasExtension?" with extension":""));
 			return;
 		}
+		layoutInfo[INFO_IDX_SELECTED_IDX]=layoutIdx;
 		layout=nextLayout;
 		kb_h=layout[LAYOUT_IDX_HEIGHT_PX];
 		set_kb_height(kb_h);
@@ -703,7 +704,7 @@ public class CKBview3 extends ViewGroup
 	public void toggleSymbolsExtension()
 	{
 		layoutHasExtension=!layoutHasExtension;
-		get_layout(layoutInfo[INFO_IDX_SELECTED_IDX], layoutHasExtension);
+		switch_layout(layoutInfo[INFO_IDX_SELECTED_IDX], layoutHasExtension);
 		//invalidate();
 	}
 	private void get_layout_backup()
@@ -771,7 +772,7 @@ public class CKBview3 extends ViewGroup
 			addError("Failed to switch layout");
 			return;
 		}
-		get_layout(nRows);
+		switch_layout(nRows);
 	}
 	public void switchLanguage()
 	{
@@ -781,7 +782,7 @@ public class CKBview3 extends ViewGroup
 			addError("Failed to switch language");
 			return;
 		}
-		get_layout(nRows);
+		switch_layout(nRows);
 	}//*/
 	public void toggleUnicode()
 	{
@@ -814,7 +815,7 @@ public class CKBview3 extends ViewGroup
 		//		addError("Failed to switch layout");
 		//		return;
 		//	}
-		//	get_layout(nRows);
+		//	switch_layout(nRows);
 		//}
 	}
 	public boolean uniSearch_isScrollable()
@@ -1066,7 +1067,7 @@ public class CKBview3 extends ViewGroup
 			//	addError("Error retrieving layout names");
 			//	layoutNames=null;
 			//}
-			get_layout(layoutInfo[INFO_IDX_SELECTED_IDX], layoutHasExtension);
+			switch_layout(layoutInfo[INFO_IDX_SELECTED_IDX], layoutHasExtension);
 			//if(layout!=null)//DEBUG
 			//{
 			//	addError("Received:");
@@ -1085,7 +1086,7 @@ public class CKBview3 extends ViewGroup
 		ccGridX=ceilMultiple((int)(textSize*1.5), w);
 		ccGridY=layout[LAYOUT_IDX_HEIGHT_PX]/layout[LAYOUT_IDX_ROW_COUNT];
 
-		//set_kb_height(kb_h);//get_layout sets kb_h
+		//set_kb_height(kb_h);//switch_layout sets kb_h
 		invalidate();
 
 		//if(nRows==0)//open settings in case of error		X  backup layout has a settings button
@@ -2456,7 +2457,7 @@ public class CKBview3 extends ViewGroup
 				{
 					int nLayouts=layoutInfo[INFO_IDX_LAYOUT_COUNT];
 					int choice=(int)(ti.x*nLayouts/w);
-					get_layout(choice, layoutHasExtension);
+					switch_layout(choice, layoutHasExtension);
 					cursor_control=CC_DISABLED;
 				}
 			}
