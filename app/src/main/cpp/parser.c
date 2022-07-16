@@ -16,7 +16,7 @@ static const char file[]=__FILE__;
 
 
 #define 	G_BUF_SIZE	1024
-extern char g_buf[G_BUF_SIZE];//used by log_error()
+extern char g_buf[G_BUF_SIZE];//used by l o g _ e r r o r()
 
 static int	get_lineNo(const char *text, int k, int *ret_lineStart)
 {
@@ -477,7 +477,10 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 		return 0;
 	}
 	if(ctx->layouts)
+	{
 		LOG_ERROR("Possible memory leak: ctx->layouts == %p", ctx->layouts);
+		free_context(ctx);
+	}
 	ARRAY_ALLOC(Layout, ctx->layouts, 0, 0);
 	for(k=0, numPadAppeared=0, decNumPadAppeared=0, symbolsAppeared=0;;)
 	{
@@ -667,7 +670,7 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 
 		if(skip_ws(text, text_len, &k))
 			return parse_error(text, k, "Expected portrait or landscape");
-		for(int k2=0;k2<2;++k2)
+		for(int k2=0;k2<2;++k2)//for portrait & landscape declarations
 		{
 			if((len=memCmp_ascii_ci(text+k, kw_portrait)))
 			{
@@ -684,8 +687,12 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 			else
 				return parse_error(text, k, "Expected portrait or landscape declaration");
 			if(*rows)
-				return parse_error(text, k, "Expected portrait or landscape declaration appeared before");
-
+			{
+				LOG_ERROR("Error: Expected nullptr, got %p", *rows);
+				if(rows==&layout->portrait)
+					return parse_error(text, k, "Portrait declaration appeared before");
+				return parse_error(text, k, "Landscape declaration appeared before");
+			}
 
 			if(layout==&ctx->symbolsExtension)
 				*layout_height=0.5f;

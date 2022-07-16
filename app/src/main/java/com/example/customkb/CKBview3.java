@@ -2058,7 +2058,10 @@ public class CKBview3 extends ViewGroup
 				//if(button.code=='\b')
 				//	return;
 				if(button.code=='\b')
-					uniSearch_query.deleteCharAt(uniSearch_query.length()-1);
+				{
+					if(uniSearch_query.length()>0)
+						uniSearch_query.deleteCharAt(uniSearch_query.length()-1);
+				}
 				else
 					uniSearch_query.appendCodePoint(button.code);
 				uniSearch_updateResults();

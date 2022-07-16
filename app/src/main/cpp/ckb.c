@@ -23,7 +23,7 @@ static const char file[]=__FILE__;
 //	#define DEBUG_LANG
 //	#define DEBUG_HEAP
 
-	#define STORE_ERRORS//disable this macro when using LOG_ERROR for debug
+	#define STORE_ERRORS//disable this macro when using L O G _ E R R O R for debug
 
 	#define USE_CCS_UTF8//non-standard & apparently does nothing
 //	#define ALWAYS_RESET//don't use this macro, just press reset in settings
@@ -89,6 +89,9 @@ void		free_context(Context *ctx)
 	LOG_ERROR("Freeing ctx->layouts=%p...", ctx->layouts);
 #endif
 	array_free(&ctx->layouts, free_layout);
+	free_layout(&ctx->symbolsExtension);
+	free_layout(&ctx->decNumPad);
+	free_layout(&ctx->numPad);
 	array_free(&ctx->defaultLang, 0);
 }
 
@@ -444,13 +447,7 @@ EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_init
 EXTERN_C JNIEXPORT void JNICALL Java_com_example_customkb_CKBnativelib_finish(JNIEnv *env, jclass clazz)
 {
 	if(glob)
-	{
 		free_context(&glob->ctx);
-		free_layout(&glob->ctx.numPad);
-		free_layout(&glob->ctx.decNumPad);
-		free_layout(&glob->ctx.symbolsExtension);
-		array_free(&glob->ctx.defaultLang, 0);
-	}
 	free(glob), glob=0;
 }
 EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_getTheme(JNIEnv *env, jclass clazz)
@@ -673,7 +670,7 @@ EXTERN_C JNIEXPORT jboolean JNICALL Java_com_example_customkb_CKBnativelib_saveC
 {
 	const char *text;
 	size_t text_len;
-	Context ctx={0};
+	Context dummy_ctx={0};
 	int success;
 
 	if(!str)
@@ -688,8 +685,8 @@ EXTERN_C JNIEXPORT jboolean JNICALL Java_com_example_customkb_CKBnativelib_saveC
 		return 0;
 	}
 	text_len=strlen(text);
-	success=parse_state(text, text_len, &ctx, 0, 0, 0);
-	free_context(&ctx);
+	success=parse_state(text, text_len, &dummy_ctx, 0, 0, 0);
+	free_context(&dummy_ctx);
 	if(success)
 		success=save_text(stateFilename, text, text_len);
 	env[0]->ReleaseStringUTFChars(env, str, text);
@@ -720,7 +717,7 @@ EXTERN_C JNIEXPORT jboolean JNICALL Java_com_example_customkb_CKBnativelib_store
 EXTERN_C JNIEXPORT jboolean JNICALL Java_com_example_customkb_CKBnativelib_resetConfig(JNIEnv *env, jclass clazz)
 {
 	size_t len;
-	Context dummy_ctx;
+	Context dummy_ctx={0};
 	int success;
 
 	len=strlen(default_config);
@@ -731,6 +728,7 @@ EXTERN_C JNIEXPORT jboolean JNICALL Java_com_example_customkb_CKBnativelib_reset
 		LOG_ERROR("Internal error in default config file");
 		return 0;
 	}
+	free_context(&dummy_ctx);
 
 	success=save_text(stateFilename, default_config, len);
 	if(!success)
