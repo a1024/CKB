@@ -10,6 +10,7 @@
 static const char file[]=__FILE__;
 
 
+//	#define DEBUG_STRCMP
 //	#define DEBUG_COLORS
 //	#define DEBUG_PARSER
 
@@ -430,8 +431,9 @@ static int	read_codepoint(const char *text, size_t text_len, int *k)
 static const char
 	kw_layout[]="layout",
 
-	kw_lang[]="lang", kw_url[]="url",
-	kw_ascii[]="ascii", kw_numPad[]="numpad", kw_decNumPad[]="decnumpad",
+	kw_lang[]="lang",
+	kw_symbols[]="symbols",
+	kw_numPad[]="numpad", kw_decNumPad[]="decnumpad",
 
 	kw_portrait[]="portrait", kw_landscape[]="landscape",
 
@@ -463,6 +465,7 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 	Row *row;
 	float *layout_height;
 	Button *button;
+	int numPadAppeared, decNumPadAppeared, symbolsAppeared;
 
 	if(cText)
 		store_theme=0, text=cText, ctx=ctx0;
@@ -476,7 +479,7 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 	if(ctx->layouts)
 		LOG_ERROR("Possible memory leak: ctx->layouts == %p", ctx->layouts);
 	ARRAY_ALLOC(Layout, ctx->layouts, 0, 0);
-	for(k=0;;)
+	for(k=0, numPadAppeared=0, decNumPadAppeared=0, symbolsAppeared=0;;)
 	{
 		if(skip_ws(text, text_len, &k))
 			break;
@@ -485,7 +488,7 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 			k+=len;
 			if(skip_ws(text, text_len, &k))
 				return parse_error(text, k, "Expected default language");
-			if(!parse_langName(text, text_len, &k, &ctx->defaultlang))
+			if(!parse_langName(text, text_len, &k, &ctx->defaultLang))
 				return 0;
 			continue;
 		}
@@ -574,15 +577,24 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 		k+=len;
 		if(skip_ws(text, text_len, &k))
 			return parse_error(text, k, "Expected layout type");
-		layout=(Layout*)ARRAY_APPEND(ctx->layouts, 0, 1, 1, 0);
 		if((len=memCmp_ascii_ci(text+k, kw_lang)))//layout type is 'lang'
 		{
 			k+=len;
-			layout->type=LAYOUT_LANG;
+			layout=(Layout*)ARRAY_APPEND(ctx->layouts, 0, 1, 1, 0);
 			if(!parse_langName(text, text_len, &k, &layout->lang))
 				break;
+			layout->type=LAYOUT_LANG;
 		}
-		else if((len=memCmp_ascii_ci(text+k, kw_url)))//layout type is 'url'
+		else if((len=memCmp_ascii_ci(text+k, kw_symbols)))
+		{
+			if(symbolsAppeared)
+				return parse_error(text, k, "Duplicate \'layout symbols\'");
+			symbolsAppeared=1;
+			k+=len;
+			layout=&ctx->symbolsExtension;
+			layout->type=LAYOUT_SYMBOLS_EXTENSION;
+		}
+	/*	else if((len=memCmp_ascii_ci(text+k, kw_url)))//layout type is 'url'
 		{
 			k+=len;
 			layout->type=LAYOUT_URL;
@@ -593,31 +605,45 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 		{
 			k+=len;
 			layout->type=LAYOUT_ASCII;
-		}
+		}//*/
 		else if((len=memCmp_ascii_ci(text+k, kw_numPad)))//layout type is 'numpad'
 		{
+			if(numPadAppeared)
+				return parse_error(text, k, "Duplicate \'layout numpad\'");
+			numPadAppeared=1;
 			k+=len;
+			layout=&ctx->numPad;
+			//layout=(Layout*)ARRAY_APPEND(ctx->layouts, 0, 1, 1, 0);
 			layout->type=LAYOUT_NUMPAD;
 		}
 		else if((len=memCmp_ascii_ci(text+k, kw_decNumPad)))//layout type is 'decnumpad'
 		{
+			if(decNumPadAppeared)
+				return parse_error(text, k, "Duplicate \'layout decnumpad\'");
+			decNumPadAppeared=1;
 			k+=len;
+			layout=&ctx->decNumPad;
+			//layout=(Layout*)ARRAY_APPEND(ctx->layouts, 0, 1, 1, 0);
 			layout->type=LAYOUT_DECNUMPAD;
 		}
 		else//layout must be one of the previous types
 			return parse_error(text, k, "Expected layout type");
 
-		for(int k2=0, nLayouts=(int)ctx->layouts->count-1;k2<nLayouts;++k2)			//check for duplicate layouts
+		//check for duplicate layouts
+		for(int k2=0, nLayouts=(int)ctx->layouts->count-1;k2<nLayouts;++k2)//for each previously parsed layout
 		{
 			Layout const *l2=(Layout const*)array_at(&ctx->layouts, k2);
 			if(layout->type==l2->type)
 			{
-				if((layout->type==LAYOUT_LANG||layout->type==LAYOUT_URL))
+				if(layout->type==LAYOUT_LANG)
 				{
+#ifdef DEBUG_STRCMP
+					LOG_ERROR("comparing arrays %p and %p", l2->lang, layout->lang);
+#endif
 					if(!strcmp((char*)l2->lang->data, (char*)layout->lang->data))
 					{
 						int lineStart, lineNo=get_lineNo(text, k, &lineStart);
-						log_error("Config", lineNo+1, "col %d: Duplicate \'layout %s %s\'", k-lineStart, layout->type==LAYOUT_LANG?kw_lang:kw_url, (char*)layout->lang->data);
+						log_error("Config", lineNo+1, "col %d: Duplicate \'layout lang %s\'", k-lineStart, (char*)layout->lang->data);
 						//LOGE("Config(%d): Duplicate \'layout %s %s\'", lineNo, layout->type==LAYOUT_LANG?kw_lang:kw_url, (char*)layout->lang->data);
 						//return 0;
 					}
@@ -628,10 +654,10 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 					const char *a;
 					switch(layout->type)
 					{
-					case LAYOUT_ASCII:a="ASCII";break;
-					case LAYOUT_NUMPAD:a="numpad";break;
-					case LAYOUT_DECNUMPAD:a="decnumpad";break;
-					default:a="<unknown>";break;
+					case LAYOUT_SYMBOLS_EXTENSION:	a="symbols";	break;
+					case LAYOUT_NUMPAD:				a="numpad";		break;
+					case LAYOUT_DECNUMPAD:			a="decnumpad";	break;
+					default:						a="<unknown>";	break;
 					}
 					log_error("Config", lineNo+1, "col %d: Duplicate \'layout %s\'", k-lineStart, a);
 					//LOGE("Config(%d): Duplicate \'layout %s\'", lineNo, a);
@@ -660,12 +686,21 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 			if(*rows)
 				return parse_error(text, k, "Expected portrait or landscape declaration appeared before");
 
-			if(skip_ws(text, text_len, &k))
-				return parse_error(text, k, "Expected layout height");
-			if(read_fraction(text, text_len, &k, layout_height)!=1)
-				return parse_error(text, k, "Expected layout definition");
-			if(*layout_height<=0||*layout_height>1)
-				return parse_error(text, k, "Layout height should be between 0 and 1");
+
+			if(layout==&ctx->symbolsExtension)
+				*layout_height=0.5f;
+			else
+			{
+				if(skip_ws(text, text_len, &k))
+					return parse_error(text, k, "Expected layout height");
+				if(read_fraction(text, text_len, &k, layout_height)!=1)
+					return parse_error(text, k, "Expected layout definition");
+				if(*layout_height<=0||*layout_height>1)
+				{
+					LOG_ERROR("layout height = %f", *layout_height);
+					return parse_error(text, k, "Layout height should be between 0 and 1");
+				}
+			}
 
 			if(skip_ws(text, text_len, &k)||text[k]!='{')
 				return parse_error(text, k, "Expected layout definition");
@@ -720,30 +755,46 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 				break;
 		}
 	}
-	if(!ctx->defaultlang)
+
+	if(!symbolsAppeared)
+		return parse_error(text, (int)text_len-1, "Missing extension \'layout symbols\'");
+	if(!decNumPadAppeared)
+		return parse_error(text, (int)text_len-1, "Missing \'layout decnumpad\'");
+	if(!numPadAppeared)
+		return parse_error(text, (int)text_len-1, "Missing \'layout numpad\'");
+	//if(ctx->symbolsExtension.type!=LAYOUT_SYMBOLS_EXTENSION||!ctx->symbolsExtension.portrait||!ctx->symbolsExtension.landscape)
+	//	return parse_error(text, (int)text_len-1, "Missing \'layout symbols{...}\'");
+	//if(ctx->numPad.type!=LAYOUT_SYMBOLS_EXTENSION||!ctx->numPad.portrait||!ctx->numPad.landscape)
+	//	return parse_error(text, (int)text_len-1, "Missing \'layout numpad{...}\'");
+	//if(ctx->decNumPad.type!=LAYOUT_SYMBOLS_EXTENSION||!ctx->decNumPad.portrait||!ctx->decNumPad.landscape)
+	//	return parse_error(text, (int)text_len-1, "Missing \'layout decnumpad{...}\'");
+
+	if(!ctx->defaultLang)
 		return parse_error(text, (int)text_len-1, "Missing default language declaration, for example: \'lang en\'");
-	int nLayouts=(int)ctx->layouts->count, found_lang=0, found_url=0;
+	int nLayouts=(int)ctx->layouts->count, found_lang=0;
 	for(int kl=0;kl<nLayouts;++kl)
 	{
 		layout=(Layout*)array_at(&ctx->layouts, kl);
-		if((layout->type==LAYOUT_LANG||layout->type==LAYOUT_URL)&&!strcmp((char*)layout->lang->data, (char*)ctx->defaultlang->data))
+#ifdef DEBUG_STRCMP
+		LOG_ERROR("comparing arrays %p and %p", layout->lang, ctx->defaultLang);
+#endif
+		if(layout->type==LAYOUT_LANG&&!strcmp((char*)layout->lang->data, (char*)ctx->defaultLang->data))
 		{
-			if(layout->type==LAYOUT_LANG)
-				found_lang=1;
-			else
-				found_url=1;
+			found_lang=1;
+			break;
 		}
 	}
 	int lStart=0, lno=0;
-	if(!found_lang||!found_url)
-		lno=get_lineNo(text, (int)text_len-1, &lStart);
 	if(!found_lang)
-		log_error("Config", lno+1, "col %d: Missing \'layout lang %s\'", lStart, (char*)ctx->defaultlang->data);
-	if(!found_url)
-		log_error("Config", lno+1, "col %d: Missing \'layout url %s\'", lStart, (char*)ctx->defaultlang->data);
+	{
+		lno=get_lineNo(text, (int)text_len-1, &lStart);
+		log_error("Config", lno+1, "col %d: Missing \'layout lang %s\'", lStart, (char*)ctx->defaultLang->data);
+	}
+	//if(!found_url)
+	//	log_error("Config", lno+1, "col %d: Missing \'layout url %s\'", lStart, (char*)ctx->defaultLang->data);
 	if(store_theme)
 		free_context(&dummy_ctx);
-	return found_lang&&found_url;
+	return found_lang;
 }
 
 static int	calc_raster_sizes_rows(ArrayHandle rows, int width, int height, float kb_percent)
@@ -799,5 +850,7 @@ int 		calc_raster_sizes(Context *ctx, int width, int height, int is_landscape)
 			layout->l_height=(int)((float)width*layout->l_percent);
 		}
 	}
+	ret&=calc_raster_sizes_rows(ctx->symbolsExtension.portrait, width, height, 0.5f);//height percentage is irrelevant here because the extension rows have same height as layout rows
+	ret&=calc_raster_sizes_rows(ctx->symbolsExtension.landscape, height, width, 0.5f);
 	return ret;
 }

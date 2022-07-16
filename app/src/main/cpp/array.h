@@ -68,7 +68,7 @@ void 			array_assign(ArrayHandle *arr, const void *data, size_t count);//cannot 
 ArrayHandle		array_copy(ArrayHandle *arr, DebugInfo debug_info);//shallow
 void			array_free(ArrayHandle *arr, void (*destructor)(void*));
 void			array_clear(ArrayHandle *arr, void (*destructor)(void*));//keeps allocation
-void			array_fit(ArrayHandle *arr, size_t pad);
+int 			array_fit(ArrayHandle *arr, size_t pad);
 
 void*			array_insert(ArrayHandle *arr, size_t idx, const void *data, size_t count, size_t rep, size_t pad);//cannot be nullptr
 void*			array_erase(ArrayHandle *arr, size_t idx, size_t count, void (*destructor)(void*));

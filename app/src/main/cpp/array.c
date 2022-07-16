@@ -155,7 +155,7 @@ int					valid(const void *p)
 
 //C array
 #if 1
-static void		array_realloc(ArrayHandle *arr, size_t count, size_t pad)//CANNOT be nullptr, array must be initialized with array_alloc()
+static int 			array_realloc(ArrayHandle *arr, size_t count, size_t pad)//CANNOT be nullptr, array must be initialized with array_alloc()
 {
 	ArrayHandle p2;
 	size_t size, newcap;
@@ -167,12 +167,15 @@ static void		array_realloc(ArrayHandle *arr, size_t count, size_t pad)//CANNOT b
 	{
 		p2=(ArrayHandle)realloc(*arr, sizeof(ArrayHeader)+newcap);
 		ASSERT_P(p2);
+		if(!p2)
+			return 0;
 		*arr=p2;
 		if(arr[0]->cap<newcap)
 			memset(arr[0]->data+arr[0]->cap, 0, newcap-arr[0]->cap);
 		arr[0]->cap=newcap;
 	}
 	arr[0]->count=count;
+	return 1;
 }
 
 //Array API
@@ -186,6 +189,8 @@ ArrayHandle		array_construct(const void *src, size_t esize, size_t count, size_t
 	cap=dstsize+pad*esize;
 	arr=(ArrayHandle)malloc(sizeof(ArrayHeader)+cap);
 	ASSERT_P(arr);
+	if(!arr)
+		return 0;
 	arr->count=count;
 	arr->esize=esize;
 	arr->cap=cap;
@@ -208,7 +213,10 @@ void 			array_assign(ArrayHandle *arr, const void *data, size_t count)//cannot b
 	//LOGI("array_assign: arr = %p, *arr = %p", arr, arr?*arr:0);//
 	ASSERT_P(*arr);
 	if(arr[0]->count<count)
-		array_realloc(arr, count, 0);
+	{
+		if(!array_realloc(arr, count, 0))
+			return;
+	}
 	if(data)
 		memcpy(arr[0]->data, data, count*arr[0]->esize);
 	else
@@ -261,7 +269,8 @@ void*			array_insert(ArrayHandle *arr, size_t idx, const void *data, size_t coun
 	srcsize=count*arr[0]->esize;
 	dstsize=rep*srcsize;
 	movesize=arr[0]->count*arr[0]->esize-start;
-	array_realloc(arr, arr[0]->count+rep*count, pad);
+	if(!array_realloc(arr, arr[0]->count+rep*count, pad))
+		return 0;
 	memmove(arr[0]->data+start+dstsize, arr[0]->data+start, movesize);
 	if(data)
 		memfill(arr[0]->data+start, data, dstsize, srcsize);
@@ -290,17 +299,22 @@ void*			array_erase(ArrayHandle *arr, size_t idx, size_t count, void (*destructo
 	arr[0]->count-=count;
 	return arr[0]->data+idx*arr[0]->esize;
 }
-void			array_fit(ArrayHandle *arr, size_t pad)//can be nullptr
+int 			array_fit(ArrayHandle *arr, size_t pad)//can be nullptr
 {
 	ArrayHandle p2;
 	if(!*arr)
-		return;
+		return 0;
 	arr[0]->cap=(arr[0]->count+pad)*arr[0]->esize;
 	p2=(ArrayHandle)realloc(*arr, sizeof(ArrayHeader)+arr[0]->cap);
 	ASSERT_P(p2);
-	*arr=p2;
+	if(p2)
+	{
+		*arr=p2;
+		return 1;
+	}
+	return 0;
 }
-size_t			array_size(ArrayHandle const *arr)//can be nullptr
+size_t			array_size(ArrayHandle const *arr)//can be nullptr		DEPRECATED, USE handle->count INSTEAD
 {
 	if(!arr[0])
 		return 0;
@@ -311,13 +325,19 @@ void*			array_at(ArrayHandle *arr, size_t idx)
 	if(!arr[0])
 		return 0;
 	if(idx>=arr[0]->count)
+	{
+		LOG_ERROR("Array out of bounds: idx=%d, count=%d, declared at line %d", idx, arr[0]->count, arr[0]->debug_info);
 		return 0;
+	}
 	return arr[0]->data+idx*arr[0]->esize;
 }
 const void*		array_at_const(ArrayConstHandle const *arr, int idx)
 {
 	if(!arr[0])
+	{
+		LOG_ERROR("Array out of bounds: idx=%d, count=%d, declared at line %d", idx, arr[0]->count, arr[0]->debug_info);
 		return 0;
+	}
 	return arr[0]->data+idx*arr[0]->esize;
 }
 void*			array_back(ArrayHandle *arr)

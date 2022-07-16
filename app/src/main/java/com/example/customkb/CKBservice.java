@@ -178,6 +178,9 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 				case CKBview3.MODMASK|CKBview3.KEY_LEFT:
 					for(int k=0;k<count;++k)
 					{
+						ExtractedText et=inCon.getExtractedText(new ExtractedTextRequest(), 0);
+						if(et!=null&&et.selectionStart==0&&et.selectionEnd==0)
+							break;
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_LEFT));
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_LEFT));
 					}
@@ -185,6 +188,9 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 				case CKBview3.MODMASK|CKBview3.KEY_RIGHT:
 					for(int k=0;k<count;++k)
 					{
+						ExtractedText et=inCon.getExtractedText(new ExtractedTextRequest(), 0);
+						if(et!=null&&et.selectionStart==et.text.length()&&et.selectionEnd==et.text.length())
+							break;
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_RIGHT));
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_RIGHT));
 					}
@@ -192,6 +198,9 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 				case CKBview3.MODMASK|CKBview3.KEY_UP:
 					for(int k=0;k<count;++k)
 					{
+						ExtractedText et=inCon.getExtractedText(new ExtractedTextRequest(), 0);
+						if(et!=null&&et.selectionStart==0&&et.selectionEnd==0)
+							break;
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_UP));
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_UP));
 					}
@@ -199,6 +208,9 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 				case CKBview3.MODMASK|CKBview3.KEY_DOWN:
 					for(int k=0;k<count;++k)
 					{
+						ExtractedText et=inCon.getExtractedText(new ExtractedTextRequest(), 0);
+						if(et!=null&&et.selectionStart==et.text.length()&&et.selectionEnd==et.text.length())
+							break;
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_DOWN));
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_DOWN));
 					}
@@ -416,23 +428,47 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SCROLL_LOCK));
 				break;
 			case CKBview3.MODMASK|CKBview3.KEY_LEFT:
-				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_LEFT));
-				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_LEFT));
+				{
+					ExtractedText et=inCon.getExtractedText(new ExtractedTextRequest(), 0);
+					if(et==null||et.selectionStart>0||et.selectionEnd>0)
+					{
+						inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_LEFT));
+						inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_LEFT));
+					}
+				}
 				break;
 			case CKBview3.MODMASK|CKBview3.KEY_RIGHT:
-				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_RIGHT));
-				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_RIGHT));
+				{
+					ExtractedText et=inCon.getExtractedText(new ExtractedTextRequest(), 0);
+					if(et==null||et.selectionStart<et.text.length()||et.selectionEnd<et.text.length())
+					{
+						inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_RIGHT));
+						inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_RIGHT));
+					}
+				}
 				break;
 			case CKBview3.MODMASK|CKBview3.KEY_UP:
-				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_UP));
-				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_UP));
+				{
+					ExtractedText et=inCon.getExtractedText(new ExtractedTextRequest(), 0);
+					if(et==null||et.selectionStart>0||et.selectionEnd>0)
+					{
+						inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_UP));
+						inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_UP));
+					}
+				}
 				break;
 			case CKBview3.MODMASK|CKBview3.KEY_DOWN:
-				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_DOWN));
-				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_DOWN));
+				{
+					ExtractedText et=inCon.getExtractedText(new ExtractedTextRequest(), 0);
+					if(et==null||et.selectionStart<et.text.length()||et.selectionEnd<et.text.length())
+					{
+						inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_DOWN));
+						inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_DOWN));
+					}
+				}
 				break;
 
-			case CKBview3.MODMASK|CKBview3.KEY_LAYOUT:
+		/*	case CKBview3.MODMASK|CKBview3.KEY_LAYOUT:
 			//case CKBview3.SK_STD:
 			//case CKBview3.SK_SYM:
 			//case CKBview3.SK_ALL:
@@ -449,10 +485,13 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 					}
 				}
 				//	myView.kb.selectLayout(key);
-				break;
+				break;//*/
 			//case CKBview3.MODMASK|CKBview3.KEY_TRANSPARENT:
 			//	transparent=!transparent;
 			//	break;
+			case CKBview3.MODMASK|CKBview3.KEY_SYMBOLS:
+				myView.toggleSymbolsExtension();
+				break;
 			case CKBview3.MODMASK|CKBview3.KEY_SETTINGS://TODO: keyboard settings activity (unicode search, layout customization, color theme)
 				if((flags&1)!=0)//down
 				{
@@ -620,28 +659,38 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 	}
 	boolean pasteFromClipboard(InputConnection inCon)
 	{
-			ClipboardManager clipboard=(ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
-			if(clipboard==null)
-			{
-				Log.e(TAG, "clipboard == null");
+		ClipboardManager clipboard=(ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
+		if(clipboard==null)
+		{
+			Log.e(TAG, "clipboard == null");
+			return false;
+		}
+		ClipData clipData=clipboard.getPrimaryClip();
+		if(clipData==null)
+		{
+			Log.e(TAG, "clipboard.getPrimaryClip() == null");
+			return false;
+		}
+		ClipData.Item item=clipData.getItemAt(0);
+		if(item==null)
+		{
+			Log.e(TAG, "clipData.getItemAt(0) == null");
+			return false;
+		}
+		CharSequence cs=item.getText();
+		String str;
+		if(cs!=null)
+			str=cs.toString();
+		else
+		{
+			Uri url=item.getUri();
+			if(url==null)
 				return false;
-			}
-			ClipData.Item item=clipboard.getPrimaryClip().getItemAt(0);
-			CharSequence cs=item.getText();
-			String str;
-			if(cs!=null)
-				str=cs.toString();
-			else
-			{
-				Uri url=item.getUri();
-				if(url==null)
-					return false;
-				str=url.toString();
-			}
-			inCon.commitText(str, 1);//2020-07-11
-		//	inCon.commitText(str, str.length());
-		//	displayToast("Pasted from clipboard");
-			return true;
+			str=url.toString();
+		}
+		inCon.commitText(str, 1);//2020-07-11
+	//	displayToast("Pasted from clipboard");
+		return true;
 	}
 	void sendAsIs(int key, InputConnection inCon)
 	{

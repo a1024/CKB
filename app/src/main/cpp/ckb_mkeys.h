@@ -6,8 +6,7 @@
 
 CKBKEY(KEY_NAB, "", "nab")
 
-CKBKEY(KEY_LAYOUT, "Layout", "layout")
-
+CKBKEY(KEY_SYMBOLS, "Symbols", "symbols")
 CKBKEY(KEY_SETTINGS, "Settings", "settings")
 
 CKBKEY(KEY_HOME, "Home", "home")
@@ -49,8 +48,9 @@ CKBKEY(KEY_F12, "F12", "f12")
 CKBKEY(KEY_CUT, "Cut", "cut")
 CKBKEY(KEY_COPY, "Copy", "copy")
 CKBKEY(KEY_PASTE, "paste", "paste")
+CKBKEY(KEY_CLIPBOARD, "Clipboard", "clipboard")
 CKBKEY(KEY_SELECTALL, "selectall", "selectall")
 CKBKEY(KEY_MENU, "Menu", "menu")
-CKBKEY(KEY_UNICODE, "Unicode", "unicode")
+CKBKEY(KEY_UNICODE, "Unicode\nSearch", "unicode")
 
 #endif

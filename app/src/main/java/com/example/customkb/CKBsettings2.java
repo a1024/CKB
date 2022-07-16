@@ -445,16 +445,16 @@ public class CKBsettings2 extends ViewGroup
 	public void get_theme_colors()
 	{
 		theme_colors=null;
-		CKBnativelib.init(0, 0, w, h);//parse config file
+		int[] layoutInfo=CKBnativelib.init(0, 0, w, h);//parse config file
 		int nErrors=CKBnativelib.getNErrors();
-		if(nErrors>0)
+		if(layoutInfo==null||nErrors>0)
 		{
 			Log.e(TAG, "Failed to read config file");//
 			for(int ke=0;ke<nErrors;++ke)
 				Log.e(TAG, CKBnativelib.getError(ke));
 		}
 		else
-			theme_colors=CKBnativelib.getColors();
+			theme_colors=CKBnativelib.getTheme();
 		//CKBnativelib.finish();//native CRASH
 		if(theme_colors==null)
 		{

@@ -43,14 +43,13 @@ typedef enum LayoutTypeEnum
 {
 	LAYOUT_UNINITIALIZED,//illegal value
 
-	//these layouts must have language 'lang':
+	//these layout(s) must have language name 'lang':
 	LAYOUT_LANG,
-	LAYOUT_URL,
 
-	//these layouts must appear only once:
-	LAYOUT_ASCII,
-	LAYOUT_NUMPAD,
-	LAYOUT_DECNUMPAD,
+	//these layout(s) must appear only once:
+	LAYOUT_NUMPAD,				//layoutIdx == -1
+	LAYOUT_DECNUMPAD,			//layoutIdx == -2
+	LAYOUT_SYMBOLS_EXTENSION,	//layoutIdx == -3
 } LayoutType;
 typedef struct ButtonInfoStruct
 {
@@ -60,13 +59,13 @@ typedef struct ButtonInfoStruct
 typedef struct RowStruct
 {
 	int y1, y2;
-	ArrayHandle buttons;
+	ArrayHandle buttons;//'Button' array
 } Row;
 typedef struct LayoutStruct
 {
 	LayoutType type;
 	ArrayHandle lang;//string, for layout types 'lang' & 'url'
-	ArrayHandle portrait, landscape;//array of rows
+	ArrayHandle portrait, landscape;//'Row' arrays
 	float p_percent, l_percent;//percentage of screen height (width and height get swapped on landscape)
 	int p_height, l_height;//keyboard height in pixels
 } Layout;
@@ -86,7 +85,11 @@ typedef enum ColorIdxEnum
 typedef struct ContextStruct
 {
 	ArrayHandle layouts;//'Layout' array
-	ArrayHandle defaultlang;//string
+	Layout
+		symbolsExtension,
+		numPad,		//layoutIdx == -1
+		decNumPad;	//layoutIdx == -2
+	ArrayHandle defaultLang;//string
 	int theme[9];
 } Context;
 typedef struct GlobalsStruct
@@ -95,7 +98,8 @@ typedef struct GlobalsStruct
 
 	Context ctx;
 	ModeType mode;
-	int layoutidx, prevlayoutidx;
+	//int layoutIdx;
+	//int prevLayoutIdx;
 } Globals;
 
 extern Globals *glob;

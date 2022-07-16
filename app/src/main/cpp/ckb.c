@@ -12,6 +12,12 @@
 static const char file[]=__FILE__;
 
 
+//FIXME
+//	no debug macros should be defined
+//	STORE_ERRORS should be defined
+//	ALWAYS_RESET shouldn't be defined
+
+//	#define DEBUG_ARRAY
 //	#define DEBUG_FILE
 //	#define DEBUG_ERROR
 //	#define DEBUG_LANG
@@ -83,7 +89,7 @@ void		free_context(Context *ctx)
 	LOG_ERROR("Freeing ctx->layouts=%p...", ctx->layouts);
 #endif
 	array_free(&ctx->layouts, free_layout);
-	array_free(&ctx->defaultlang, 0);
+	array_free(&ctx->defaultLang, 0);
 }
 
 int 		glob_alloc()
@@ -202,7 +208,7 @@ int			find_layout_idx(LayoutType type, ArrayHandle lang)
 	int nLayouts=(int)glob->ctx.layouts->count;
 	Layout *layout;
 
-	if(type==LAYOUT_LANG||type==LAYOUT_URL)
+	if(type==LAYOUT_LANG)
 	{
 		for(int kl=0;kl<nLayouts;++kl)
 		{
@@ -222,6 +228,7 @@ int			find_layout_idx(LayoutType type, ArrayHandle lang)
 	}
 	return -1;
 }
+#if 0
 ArrayHandle	get_rows(int layoutIdx)
 {
 	Layout const *layout=(Layout const*)array_at(&glob->ctx.layouts, layoutIdx);
@@ -234,7 +241,8 @@ ArrayHandle	get_rows(int layoutIdx)
 		LOG_ERROR("Rows pointer == nullptr");
 	return rows;
 }
-const char*	layoutType2str(Layout const *layout)
+#endif
+const char*	layoutType2str(Layout const *layout)//for debug
 {
 	switch(layout->type)
 	{
@@ -242,20 +250,87 @@ const char*	layoutType2str(Layout const *layout)
 
 	//these layouts must have language 'lang':
 	case LAYOUT_LANG:			return "lang";
-	case LAYOUT_URL:			return "url";
+//	case LAYOUT_URL:			return "url";
 
 	//these layouts must appear only once:
-	case LAYOUT_ASCII:			return "ascii";
-	case LAYOUT_NUMPAD:			return "numpad";
-	case LAYOUT_DECNUMPAD:		return "decnumpad";
+	case LAYOUT_SYMBOLS_EXTENSION:	return "symbols";
+//	case LAYOUT_ASCII:				return "ascii";
+	case LAYOUT_NUMPAD:				return "numpad";
+	case LAYOUT_DECNUMPAD:			return "decnumpad";
+	default:						break;
 	}
 	return "UNIDENTIFIED";
 }
+Layout*		get_layout(Context *ctx, int idx)
+{
+	if(idx==-3)
+		return &ctx->symbolsExtension;
+	if(idx==-2)
+		return &ctx->numPad;
+	if(idx==-1)
+		return &ctx->decNumPad;
+	if(idx<0||idx>=(int)ctx->layouts->count)
+	{
+		LOG_ERROR("Layout index out of bounds: idx=%d, count=%d", idx, ctx->layouts->count);
+		return 0;
+	}
+	return (Layout*)array_at(&ctx->layouts, idx);
+}
+int 		getTotalButtonCount(ArrayHandle rows)
+{
+	int nButtonsTotal;
+	Row *row;
 
-EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_init(JNIEnv *env, jclass clazz, jint mode, jint decnumpad, jint width, jint height)
+	nButtonsTotal=0;
+	for(int kr=0;kr<(int)rows->count;++kr)
+	{
+		row=(Row*)array_at(&rows, kr);
+		nButtonsTotal+=(int)row->buttons->count;
+	}
+	return nButtonsTotal;
+}
+void		checkedAssign(ArrayHandle arr, int idx, int val)
+{
+	int *v0=(int*)array_at(&arr, idx);
+	if(*v0)
+		LOG_ERROR("Error: array[%] = %d overwritten with %d", idx, *v0, val);
+	else
+		*v0=val;
+}
+void		fillLayoutArray(ArrayHandle arr, ArrayHandle rows, int *rowIdx, int *start_buttons)
+{
+	Row *row;
+
+	for(int kr=0;kr<(int)rows->count;++kr, ++*rowIdx)//for each row in layout
+	{
+		row=(Row*)array_at(&rows, kr);
+#ifdef DEBUG_ARRAY
+		LOG_ERROR("[%d]rowStartIdx=%d, [%d]x[0]=0", 2+*rowIdx, *start_buttons, *start_buttons);
+#endif
+		checkedAssign(arr, 2+*rowIdx, *start_buttons);
+		checkedAssign(arr, *start_buttons, 0);
+		//*(int*)array_at(&arr, 2+*rowIdx)=*start_buttons;
+		//*(int*)array_at(&arr, *start_buttons)=0;//x[0] is always zero (for easy looping)
+		for(int kb=0;kb<(int)row->buttons->count;++kb)//for each button in row
+		{
+			Button *button=(Button*)array_at(&row->buttons, kb);
+#ifdef DEBUG_ARRAY
+			LOG_ERROR("[%d, %d] [%d]code=0x%08X, [%d]x2=%d", *rowIdx, kb, *start_buttons+kb*2+1, button->code, *start_buttons+kb*2+2, button->x2);
+#endif
+			checkedAssign(arr, *start_buttons+kb*2+1, button->code);
+			checkedAssign(arr, *start_buttons+kb*2+2, button->x2);
+			//*(int*)array_at(&arr, *start_buttons+kb*2+1)=button->code;
+			//*(int*)array_at(&arr, *start_buttons+kb*2+2)=button->x2;
+		}
+		*start_buttons+=(int)row->buttons->count*2+1;
+	}
+}
+
+EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_init(JNIEnv *env, jclass clazz, jint mode, jint decnumpad, jint width, jint height)
 {
 	int ret;
 	ArrayHandle text;
+	jintArray jResult;
 
 	ret=glob_alloc();
 	if(ret)
@@ -307,57 +382,78 @@ EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_init(JNIE
 //#ifdef DEBUG_FILE
 //	LOG_ERROR("After parsing: success == %d", ret);//
 //#endif
-	if(ret)
-	{
-		switch(glob->mode)
-		{
-		//text modes
-		case MODE_TEXT:
-			glob->layoutidx=find_layout_idx(LAYOUT_LANG, glob->ctx.defaultlang);
-			break;
-		case MODE_PASSWORD:
-			glob->layoutidx=find_layout_idx(LAYOUT_ASCII, 0);
-			break;
-		case MODE_URL:
-		case MODE_EMAIL:
-			glob->layoutidx=find_layout_idx(LAYOUT_URL, glob->ctx.defaultlang);
-			break;
+	if(!ret)
+		return 0;
 
-		//numeric modes
-		case MODE_NUMBER:
-		case MODE_PHONE_NUMBER:
-		case MODE_NUMERIC_PASSWORD:
-			if(decnumpad)
-				glob->layoutidx=find_layout_idx(LAYOUT_DECNUMPAD, 0);
-			else
-				glob->layoutidx=find_layout_idx(LAYOUT_NUMPAD, 0);
-			break;
-		}
-		glob->prevlayoutidx=glob->layoutidx;
-		Layout *l2=array_at(&glob->ctx.layouts, glob->layoutidx);
-//#ifdef DEBUG_FILE
-//		LOG_ERROR("Selected layout %d: %s %s", glob->layoutidx, layoutType2str(l2), l2->type==LAYOUT_LANG||l2->type==LAYOUT_URL?(char*)l2->lang->data:"(not a language)");//
-//#endif
-		if(width<height)//portrait
-			return (int)l2->portrait->count;
-		return (int)l2->landscape->count;
+	//glob->prevLayoutIdx=glob->layoutIdx;
+	int layoutIdx=-10;//some illegal value
+	switch(glob->mode)
+	{
+	//text modes
+	case MODE_TEXT:
+	case MODE_PASSWORD:
+	case MODE_URL:
+	case MODE_EMAIL:
+		layoutIdx=find_layout_idx(LAYOUT_LANG, glob->ctx.defaultLang);
+		break;
+
+	//case MODE_PASSWORD:
+	//	glob->layoutIdx=find_layout_idx(LAYOUT_ASCII, 0);
+	//	break;
+	//case MODE_URL:
+	//case MODE_EMAIL:
+	//	glob->layoutIdx=find_layout_idx(LAYOUT_URL, glob->ctx.defaultLang);
+	//	break;
+
+	//numeric modes
+	case MODE_NUMBER:
+	case MODE_PHONE_NUMBER:
+	case MODE_NUMERIC_PASSWORD:
+		if(decnumpad)
+			layoutIdx=-2;
+		else
+			layoutIdx=-1;
+		//if(decnumpad)
+		//	glob->layoutIdx=find_layout_idx(LAYOUT_DECNUMPAD, 0);
+		//else
+		//	glob->layoutIdx=find_layout_idx(LAYOUT_NUMPAD, 0);
+		break;
 	}
-	return 0;
+	Layout *l2=get_layout(&glob->ctx, layoutIdx);
+	if(!l2)
+		return 0;
+	//glob->layoutIdx=layoutIdx;
+	//Layout *l2=array_at(&glob->ctx.layouts, glob->layoutIdx);
+//#ifdef DEBUG_FILE
+//		LOG_ERROR("Selected layout %d: %s %s", glob->layoutIdx, layoutType2str(l2), l2->type==LAYOUT_LANG||l2->type==LAYOUT_URL?(char*)l2->lang->data:"(not a language)");//
+//#endif
+	//if(width<height)//portrait
+	//	return (int)l2->portrait->count;
+	//return (int)l2->landscape->count;
+
+	jResult=env[0]->NewIntArray(env, 2);
+	if(!jResult)
+	{
+		LOG_ERROR("init(): NewIntArray returned nullptr");
+		return 0;
+	}
+	jint smallArr[]={(jint)layoutIdx, (jint)glob->ctx.layouts->count};
+	env[0]->SetIntArrayRegion(env, jResult, 0, 2, smallArr);
+	return jResult;
 }
 EXTERN_C JNIEXPORT void JNICALL Java_com_example_customkb_CKBnativelib_finish(JNIEnv *env, jclass clazz)
 {
 	if(glob)
+	{
 		free_context(&glob->ctx);
-	//free(glob);
+		free_layout(&glob->ctx.numPad);
+		free_layout(&glob->ctx.decNumPad);
+		free_layout(&glob->ctx.symbolsExtension);
+		array_free(&glob->ctx.defaultLang, 0);
+	}
+	free(glob), glob=0;
 }
-EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_getKbHeight(JNIEnv *env, jclass clazz)
-{
-	Layout *layout=(Layout*)array_at(&glob->ctx.layouts, glob->layoutidx);
-	if(glob->w<glob->h)
-		return layout->p_height;
-	return layout->l_height;
-}
-EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_getColors(JNIEnv *env, jclass clazz)
+EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_getTheme(JNIEnv *env, jclass clazz)
 {
 	jintArray jArr;
 
@@ -376,199 +472,105 @@ EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_getC
 	env[0]->SetIntArrayRegion(env, jArr, 0, THEME_COLOR_COUNT, glob->ctx.theme);
 	return jArr;
 }
-EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_getRow(JNIEnv *env, jclass clazz, jint rowIdx)
+EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_getLayout(JNIEnv *env, jclass clazz, jint layoutIdx, jboolean hasSymbolsExtension)
 {
-	ArrayHandle retRow;
+	ArrayHandle arr, rows, extRows;
 	Layout *layout;
-	Row *row;
-	int arrSize;
-	jintArray jArr;
-
+	int arrCount;
+	jintArray jResult;
 	if(!glob)
 	{
 		LOG_ERROR("getRow(): Globals were not allocated");
 		return 0;
 	}
+	layout=get_layout(&glob->ctx, layoutIdx);
+	if(!layout)//OOB layoutIdx
+		return 0;
 
-	layout=(Layout*)array_at(&glob->ctx.layouts, glob->layoutidx);
 	if(glob->w<glob->h)//portrait
-		row=(Row*)array_at(&layout->portrait, rowIdx);
+		rows=layout->portrait;
+	else//landscape
+		rows=layout->landscape;
+
+	//count the total number of buttons in layout
+	int nRowsTotal=0, nButtonsTotal=0;
+	if(hasSymbolsExtension)
+	{
+		if(glob->w<glob->h)//portrait
+			extRows=glob->ctx.symbolsExtension.portrait;
+		else//landscape
+			extRows=glob->ctx.symbolsExtension.landscape;
+		nRowsTotal+=(int)extRows->count;
+		nButtonsTotal+=getTotalButtonCount(extRows);
+	}
 	else
-		row=(Row*)array_at(&layout->landscape, rowIdx);
+		extRows=0;
+	nRowsTotal+=(int)rows->count;
+	nButtonsTotal+=getTotalButtonCount(rows);
 
-	arrSize=3+2*(int)row->buttons->count;
-	ARRAY_ALLOC(int, retRow, arrSize, 0);
-
-	int *ptr=(int*)array_at(&retRow, 0);
-	*ptr=row->y1, ++ptr;
-	*ptr=row->y2, ++ptr;
-	*ptr=0, ++ptr;
-	for(int kb=0;kb<(int)row->buttons->count;++kb)
+	arrCount=3+nRowsTotal*2+nButtonsTotal*2;
+	ARRAY_ALLOC(int, arr, arrCount, 0);
+	if(!arr)
 	{
-		Button *button=(Button*)array_at(&row->buttons, kb);
-		*ptr=button->code, ++ptr;
-		*ptr=button->x2, ++ptr;
-	}
-
-	ptr=(int*)array_at(&retRow, 0);
-	jArr=env[0]->NewIntArray(env, arrSize);
-	env[0]->SetIntArrayRegion(env, jArr, 0, arrSize, ptr);
-
-	array_free(&retRow, 0);
-	return jArr;
-}
-
-EXTERN_C JNIEXPORT int JNICALL Java_com_example_customkb_CKBnativelib_currentLayout(JNIEnv *env, jclass clazz)
-{
-	ArrayHandle rows;
-
-	if(!glob)
-	{
-		LOG_ERROR("currentLayout(): Globals were not allocated");
-		return -1;
-	}
-	if(glob->layoutidx<0||glob->layoutidx>=(int)glob->ctx.layouts->count)
-	{
-		LOG_ERROR("currentLayout(): Invalid layout idx");
-		return -1;
-	}
-
-	rows=get_rows(glob->layoutidx);
-	if(!rows)
+		LOG_ERROR("malloc returned nullptr");
 		return 0;
-	return (int)rows->count;
-}
-EXTERN_C JNIEXPORT int JNICALL Java_com_example_customkb_CKBnativelib_nextLayout(JNIEnv *env, jclass clazz)
-{
-	Layout *layout;
-	int idx;
-	ArrayHandle rows;
+	}
 
-	if(!glob)
+	int layoutHeight=glob->w<glob->h?layout->p_height:layout->l_height;
+	if(hasSymbolsExtension)//calculate layout height		not row height, because of accumulated truncation error
 	{
-		LOG_ERROR("nextLayout(): Globals were not allocated");
-		return -1;
+		int originalRowCount, extensionRowCount;
+		if(glob->w<glob->h)
+			originalRowCount=(int)layout->portrait->count, extensionRowCount=(int)glob->ctx.symbolsExtension.portrait->count;
+		else
+			originalRowCount=(int)layout->landscape->count, extensionRowCount=(int)glob->ctx.symbolsExtension.landscape->count;
+		if(originalRowCount)
+			layoutHeight=layoutHeight*(extensionRowCount+originalRowCount)/originalRowCount;
 	}
-	if(glob->layoutidx<0||glob->layoutidx>=(int)glob->ctx.layouts->count)
-	{
-		LOG_ERROR("nextLayout(): Invalid layout idx");
-		return -1;
-	}
-	switch(glob->mode)
-	{
-	case MODE_NUMBER:
-	case MODE_PHONE_NUMBER:
-	case MODE_NUMERIC_PASSWORD:
-		return 0;
-	default://'-Wall' was a mistake
-		break;
-	}
-	layout=(Layout*)array_at(&glob->ctx.layouts, glob->layoutidx);
-	idx=-1;
-	switch(layout->type)
-	{
-	case LAYOUT_LANG:
-	case LAYOUT_URL:		//just switch to ASCII
-		idx=find_layout_idx(LAYOUT_ASCII, 0);
-		break;
-	case LAYOUT_ASCII:
-	case LAYOUT_NUMPAD:
-	case LAYOUT_DECNUMPAD:	//reset to lang/url <defaultlang>
-		switch(glob->mode)
-		{
-		case MODE_TEXT:
-		case MODE_PASSWORD:
-		case MODE_URL:case MODE_EMAIL:
-			idx=glob->prevlayoutidx;
-		//	idx=find_layout_idx(LAYOUT_LANG, glob->ctx.defaultlang);
-			break;
-		default://'-Wall' was a mistake
-			break;
-		}
-		break;
-	default://'-Wall' was a mistake
-		break;
-	}
-	if(idx<0)
-		return 0;
-	glob->prevlayoutidx=glob->layoutidx;
-	glob->layoutidx=idx;
-	rows=get_rows(glob->layoutidx);
-	if(!rows)
-		return 0;
-	return (int)rows->count;
-}
-EXTERN_C JNIEXPORT jint JNICALL Java_com_example_customkb_CKBnativelib_nextLanguage(JNIEnv *env, jclass clazz)
-{
-	if(!glob)
-	{
-		LOG_ERROR("nextLayout(): Globals were not allocated");
-		return -1;
-	}
-	if(glob->layoutidx<0)
-	{
-		LOG_ERROR("nextLayout(): Invalid layout idx");
-		return -1;
-	}
-	switch(glob->mode)
-	{
-	case MODE_NUMBER:
-	case MODE_PHONE_NUMBER:
-	case MODE_NUMERIC_PASSWORD:
-		return 0;
-	default://'-Wall' was a mistake
-		break;
-	}
-	Layout *layout=(Layout*)array_at(&glob->ctx.layouts, glob->layoutidx);
-	int nlayouts=(int)glob->ctx.layouts->count, idx=-1;
-#ifdef DEBUG_LANG
-	LOG_ERROR("nextLanguage(): Current layout is [%d/%d] %s %s", glob->layoutidx, nlayouts, layoutType2str(layout), layout->lang?(char*)layout->lang->data:"(not a language)");
+#ifdef DEBUG_ARRAY
+	LOG_ERROR("[0]nRows=%d, [1]height=%d, [%d]arrCount=%d", nRowsTotal, layoutHeight, 2+nRowsTotal, arrCount);
 #endif
-	for(int kl=(glob->layoutidx+1)%nlayouts;kl!=glob->layoutidx;kl=(kl+1)%nlayouts)
+	*(int*)array_at(&arr, 0)=nRowsTotal;
+	*(int*)array_at(&arr, 1)=layoutHeight;
+
+	*(int*)array_at(&arr, 2+nRowsTotal)=arrCount;
+
+	int rowIdx=0, start_buttons=3+nRowsTotal;
+	if(extRows)
+		fillLayoutArray(arr, extRows, &rowIdx, &start_buttons);
+	fillLayoutArray(arr, rows, &rowIdx, &start_buttons);
+
+	int *ptr=(int*)array_at(&arr, 0);
+	jResult=env[0]->NewIntArray(env, arrCount);
+	if(!jResult)
 	{
-		Layout *l2=(Layout*)array_at(&glob->ctx.layouts, kl);
-#ifdef DEBUG_LANG
-		LOG_ERROR("nextLanguage(): Testing layout [%d] %s %s", kl, layoutType2str(l2), l2->lang?(char*)l2->lang->data:"(not a language)");
+		LOG_ERROR("getLayout(): NewIntArray returned nullptr");
+		return 0;
+	}
+#ifdef DEBUG_ARRAY
+	LOG_ERROR("Sending:");//DEBUG
+	for(int k=0;k<arrCount;++k)//DEBUG
+		LOG_ERROR("[%d]=%d", k, ptr[k]);
 #endif
-		if(l2->type==LAYOUT_LANG||l2->type==LAYOUT_URL)
-		{
-			//if((layout->type==LAYOUT_LANG||layout->type==LAYOUT_URL)&&l2->type!=layout->type)//TODO remove url layout type
-			//	continue;
-			idx=kl;
-			break;
-		}
-	}
-	if(idx<0)
-	{
-		LOG_ERROR("nextLanguage(): Didn't find an another language");
-		return 0;
-	}
-	glob->layoutidx=idx;
-	ArrayHandle rows=get_rows(glob->layoutidx);
-	if(!rows)
-	{
-		LOG_ERROR("nextLanguage(): %s rows == nullptr", glob->w<glob->h?"Portrait":"Landscape");
-		return 0;
-	}
-	return (int)rows->count;
+	env[0]->SetIntArrayRegion(env, jResult, 0, arrCount, ptr);
+	array_free(&arr, 0);
+	return jResult;
 }
-EXTERN_C JNIEXPORT jstring JNICALL Java_com_example_customkb_CKBnativelib_getLayoutName(JNIEnv *env, jclass clazz)
+
+EXTERN_C JNIEXPORT jstring JNICALL Java_com_example_customkb_CKBnativelib_getLayoutName(JNIEnv *env, jclass clazz, jint layoutIdx)
 {
 	Layout const *layout;
 	const char *a;
 	jstring result;
-
 	if(!glob)
 	{
 		LOG_ERROR("getLayoutName(): Globals were not allocated");
 		return 0;
 	}
-	if(glob->layoutidx<0||glob->layoutidx>=(int)glob->ctx.layouts->count)
-	{
-		LOG_ERROR("getLayoutName(): Invalid layout idx");
+
+	layout=get_layout(&glob->ctx, layoutIdx);
+	if(!layout)
 		return 0;
-	}
-	layout=(Layout const*)array_at(&glob->ctx.layouts, glob->layoutidx);
 	switch(layout->type)
 	{
 	case LAYOUT_UNINITIALIZED://illegal value
@@ -577,13 +579,16 @@ EXTERN_C JNIEXPORT jstring JNICALL Java_com_example_customkb_CKBnativelib_getLay
 
 	//these layouts must have language 'lang':
 	case LAYOUT_LANG:
-	case LAYOUT_URL:
+	//case LAYOUT_URL:
 		a=(char*)layout->lang->data;
 		break;
 
 	//these layouts must appear only once:
-	case LAYOUT_ASCII:
-		a="ASCII";
+	//case LAYOUT_ASCII:
+	//	a="ASCII";
+	//	break;
+	case LAYOUT_SYMBOLS_EXTENSION:
+		a="Symbols";
 		break;
 	case LAYOUT_NUMPAD:
 		a="NumPad";

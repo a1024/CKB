@@ -1,17 +1,14 @@
 package com.example.customkb;
 
 import android.content.Context;
-import android.content.Intent;
 import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
-import android.icu.lang.UCharacter;
 import android.os.Build;
 import android.text.InputType;
 import android.text.StaticLayout;
@@ -44,7 +41,7 @@ public class CKBview3 extends ViewGroup
 
 		KEY_NAB=0,
 
-		KEY_LAYOUT=1,
+		KEY_SYMBOLS=1,
 		KEY_SETTINGS=2,
 
 		KEY_HOME=3,
@@ -86,10 +83,11 @@ public class CKBview3 extends ViewGroup
 		KEY_CUT=32,
 		KEY_COPY=33,
 		KEY_PASTE=34,
-		KEY_SELECTALL=35,
+		KEY_CLIPBOARD=35,
+		KEY_SELECTALL=36,
 
-		KEY_MENU=36,
-		KEY_UNICODE=37;
+		KEY_MENU=37,
+		KEY_UNICODE=38;
 	public static class ModKey
 	{
 		final int code;//code here is UNUSED (idx of ModKey)
@@ -100,11 +98,11 @@ public class CKBview3 extends ViewGroup
 			label=_label;
 		}
 	}
-	public static final ModKey[] mkeys=new ModKey[]
+	public static final ModKey[] mKeys=new ModKey[]
 	{
 		new ModKey(KEY_NAB, ""),
 
-		new ModKey(KEY_LAYOUT, "Layout"),
+		new ModKey(KEY_SYMBOLS, "Symbols"),
 		new ModKey(KEY_SETTINGS, "Settings"),
 
 		new ModKey(KEY_HOME, "Home"),
@@ -146,10 +144,11 @@ public class CKBview3 extends ViewGroup
 		new ModKey(KEY_CUT, "Cut"),
 		new ModKey(KEY_COPY, "Copy"),
 		new ModKey(KEY_PASTE, "Paste"),
+		new ModKey(KEY_CLIPBOARD, "Clipboard"),
 		new ModKey(KEY_SELECTALL, "Select\nAll"),
 
 		new ModKey(KEY_MENU, "Menu"),
-		new ModKey(KEY_UNICODE, "Unicode"),
+		new ModKey(KEY_UNICODE, "Unicode\nSearch"),
 	};
 
 	float backup_height=0.3f;
@@ -159,7 +158,8 @@ public class CKBview3 extends ViewGroup
 		{'q', 1, 'w', 1, 'e', 1, 'r', 1, 't', 1, 'y', 1, 'u', 1, 'i', 1, 'o', 1, 'p', 1},
 		{MODMASK|KEY_NAB, 1, 'a', 2, 's', 2, 'd', 2, 'f', 2, 'g', 2, 'h', 2, 'j', 2, 'k', 2, 'l', 2, MODMASK|KEY_NAB, 1},
 		{MODMASK|KEY_SHIFT, 3, 'z', 2, 'x', 2, 'c', 2, 'v', 2, 'b', 2, 'n', 2, 'm', 2, '\b', 3},
-		{MODMASK|KEY_SETTINGS, 6, MODMASK|KEY_COPY, 4, MODMASK|KEY_PASTE, 4, ' ', 12, ',', 4, '.', 4, '\n', 6},
+		{MODMASK|KEY_SETTINGS, 6, MODMASK|KEY_NAB, 4, ' ', 20, MODMASK|KEY_NAB, 4, '\n', 6},
+	//	{MODMASK|KEY_SETTINGS, 6, MODMASK|KEY_COPY, 4, MODMASK|KEY_PASTE, 4, ' ', 12, ',', 4, '.', 4, '\n', 6},
 	};
 	int[][] backup_layout_land_left=
 	{
@@ -204,6 +204,7 @@ public class CKBview3 extends ViewGroup
 	public boolean mode_unicode=false;
 
 	//unicode search
+	boolean bypass=false;//fixes bug: when switching back from unicode search, pointer.up should be ignored
 	static class SearchResult
 	{
 		int code;
@@ -213,7 +214,7 @@ public class CKBview3 extends ViewGroup
 	StringBuilder uniSearch_query=new StringBuilder();
 	float uniSearch_wpy=0;//window (scroll) position y, set by unicodeSearch & onTouch.scroll
 	ArrayList<SearchResult> uniSearch_results=new ArrayList<>();
-	public int//hit-test params set by onDraw()
+	public int//hit-test params set by o n D r a w()
 		//(portrait) vertical: search_results |y1| search_query |y2| QWERTY
 		UNI_SEARCH_PORT_Y1=0,
 		UNI_SEARCH_PORT_Y2=0,
@@ -250,13 +251,14 @@ public class CKBview3 extends ViewGroup
 	}//*/
 
 	//cursor control:
-	//{(MSB) start, end, shift (LSB)}
-	//000	CC_DISABLED
-	//001	CC_SEL_READY
-	//011	CC_SEL_END
-	//101	CC_SEL_START
-	//111	CC_SEL_BOTH
-	//110	CC_CURSOR
+	//{(MSB) switch_language, start, end, shift (LSB)}
+	//0000	CC_DISABLED
+	//0001	CC_SEL_READY
+	//0011	CC_SEL_END
+	//0101	CC_SEL_START
+	//0111	CC_SEL_BOTH
+	//0110	CC_CURSOR
+	//1000	CC_LANG
 	public static final int
 		CC_DISABLED=0,
 		CC_SEL_READY=1,//touchId_shift
@@ -265,10 +267,13 @@ public class CKBview3 extends ViewGroup
 		CC_SEL_START=5,//[touchId_shift,] touchId_start
 		CC_SEL_START_MASK=4,
 		CC_SEL_BOTH=7,//[touchId_shift,] touchId_start & touchId_end
-		CC_CURSOR=6;//touchId_start
+		CC_CURSOR=6,//touchId_start
+		CC_LANG=8;
 	public int cursor_control=CC_DISABLED;
 	public boolean isHeld_shift=false;//finger holds shift, needed to initiate selection control
-	int touchId_shift=-1, touchId_selStart=-1, touchId_selEnd=-1;
+	int touchId_shift=-1,
+		touchId_selStart=-1, touchId_selEnd=-1,
+		touchId_switchLang=-1;
 
 	//graphics
 	public static final int
@@ -302,7 +307,7 @@ public class CKBview3 extends ViewGroup
 	TextView preview;
 	PopupWindow previewPopup;
 	final RectF rectf=new RectF();
-	final Rect mBounds=new Rect();
+	final Rect rect=new Rect();
 	final TouchInfo touchInfo=new TouchInfo();
 
 	//keyboard
@@ -313,11 +318,22 @@ public class CKBview3 extends ViewGroup
 		ButtonIdx(){kx=-1; ky=-1; code=MODMASK|KEY_NAB;}
 		boolean invalid(){return kx==-1||ky==-1;}
 	}
-	final ArrayList<int[]> layout=new ArrayList<>();
+	public static final int
+		INFO_IDX_SELECTED_IDX=0,
+		INFO_IDX_LAYOUT_COUNT=1;
+	int[] layoutInfo=null;
+	public static final int
+		LAYOUT_IDX_ROW_COUNT=0,
+		LAYOUT_IDX_HEIGHT_PX=1;
+	int[] layout=null;
+	ArrayList<String> layoutNames=new ArrayList<>();
+	boolean layoutHasExtension=false;//symbols extension		should be on at the start in case mode == MODE_PASSWORD, MODE_URL, or MODE_EMAIL
+	//final ArrayList<int[]> layout=new ArrayList<>();
 	int tap_x=-1, tap_y=-1;//layout coordinates of currently held button
 	int ccGridX, ccGridY;
 	int quickMode=0;
-	boolean isActive_ctrl, isActive_alt, isActive_shift, isActive_layout;
+	boolean isActive_ctrl, isActive_alt, isActive_shift;
+	//boolean isActive_layout;
 	CKBservice service;
 
 	//timing
@@ -327,7 +343,7 @@ public class CKBview3 extends ViewGroup
 	Timer timer=new Timer();
 	int timerOn=0;//0: off, 1: turboTask, 2: longPressTask
 	int touchId_timer;
-	public int pend_switch=0;//1: switch layout, 2: switch language			//3: toggle unicode mode
+	//public int pend_switch=0;//X  only shift has long press action		1: prev. l a y o u t, 2: next l a y o u t			//3: toggle unicode mode
 	class TurboTask extends TimerTask
 	{
 		public int code;
@@ -342,7 +358,7 @@ public class CKBview3 extends ViewGroup
 		@Override public void run()//this is run when the period is expired
 		{
 			//addError("LongPressTask.run()");//DEBUG
-			switch(code)
+		/*	switch(code)
 			{
 			case MODMASK|KEY_SHIFT://long press shift: turn on caps lock
 				service.onKeyCallback(code, 1);
@@ -351,17 +367,30 @@ public class CKBview3 extends ViewGroup
 				quickMode=0;
 				break;
 
-			case MODMASK|KEY_LAYOUT://long press layout: switch language
+			case MODMASK|KEY_LAYOUT_PREV://long press l a y o u t: switch language
+				service.onKeyCallback(code, 1);
+				pend_switch=1;
+				postInvalidate();
+				//switchLanguage();//CRASH timer thread can't set LayoutParams
+				break;
+
+			case MODMASK|KEY_LAYOUT_NEXT://long press l a y o u t: switch language
 				service.onKeyCallback(code, 1);
 				pend_switch=2;
 				postInvalidate();
-				//switchLanguage();//CRASH timer thread can't set LayoutParams
 				break;
 
 			//case MODMASK|KEY_SETTINGS://long press settings: toggle unicode mode
 			//	pend_switch=3;
 			//	postInvalidate();
 			//	break;
+			}//*/
+			if(code==(MODMASK|KEY_SHIFT))
+			{
+				service.onKeyCallback(code, 1);
+				isActive_shift=true;
+				service.onKeyCallback(MODMASK|KEY_SHIFT, 1);
+				quickMode=0;
 			}
 			done=true;
 		}
@@ -373,9 +402,9 @@ public class CKBview3 extends ViewGroup
 	public static final String TAG="customkb";
 	public static final boolean
 		DEBUG_ACCUMULATE=false,//was true
-		DEBUG_TOUCH		=false,
-		DEBUG_CC		=false,
-		DEBUG_STATE		=false,
+		DEBUG_TOUCH		=false,//works
+		DEBUG_CC		=false,//CC_DISABLED
+		DEBUG_STATE		=false,//just shift
 		DEBUG_MODE		=false,
 		DEBUG_COLORS	=false,
 		DEBUG_UNICODE	=false;
@@ -429,11 +458,12 @@ public class CKBview3 extends ViewGroup
 		if((code&MODMASK)!=0)
 		{
 			code&=~MODMASK;
-			if(code>=mkeys.length)
+			if(code>=mKeys.length)
 				return "INVALID";
-			if(code==KEY_LAYOUT)
+			//if(code==KEY_LAYOUT)
+			if(code==' ')
 				return layoutName;
-			ModKey key=mkeys[code];
+			ModKey key=mKeys[code];
 			return key.label;
 		}
 		switch(code)//https://www.ascii-code.com/
@@ -480,7 +510,23 @@ public class CKBview3 extends ViewGroup
 	public ButtonIdx getButton_layout(int tap_x, int tap_y)
 	{
 		ButtonIdx button=new ButtonIdx();
-		if(tap_y>=0&&tap_y<layout.size())
+		if(layout!=null&&tap_y>=0&&tap_y<layout[LAYOUT_IDX_ROW_COUNT])
+		{
+			int rowStartIdx=layout[2+tap_y], nextRowStartIdx=layout[tap_y+3];
+			int nButtons=(nextRowStartIdx-rowStartIdx-1)/2;
+			if(tap_x>=0&&tap_y<nButtons)
+			{
+				int idx=rowStartIdx+tap_x*2;
+				button.kx=tap_x;
+				button.ky=tap_y;
+				button.y1=tap_y*layout[LAYOUT_IDX_HEIGHT_PX]/layout[LAYOUT_IDX_ROW_COUNT];
+				button.y2=(tap_y+1)*layout[LAYOUT_IDX_HEIGHT_PX]/layout[LAYOUT_IDX_ROW_COUNT];
+				button.x1=layout[idx];
+				button.code=layout[idx+1];
+				button.x2=layout[idx+2];
+			}
+		}
+	/*	if(tap_y>=0&&tap_y<layout.size())
 		{
 			int[] row=layout.get(tap_y);
 			button.kx=tap_x;
@@ -491,13 +537,40 @@ public class CKBview3 extends ViewGroup
 			button.x1=row[idx-1];
 			button.code=row[idx];
 			button.x2=row[idx+1];
-		}
+		}//*/
 		return button;
 	}
-	public ButtonIdx getButton_px(float x, float y)//linear search
+	public ButtonIdx getButton_px(float x, float y)//linear search,  assumes layout is fullscreen {0~w, 0~kb_h}
 	{
 		ButtonIdx button=new ButtonIdx();
-		for(int ky=0, nRows=layout.size();ky<nRows;++ky)
+		if(y>=0&&y<kb_h)
+		{
+			int ky=(int)(y*layout[LAYOUT_IDX_ROW_COUNT]/layout[LAYOUT_IDX_HEIGHT_PX]);
+			//addError(String.format(loc, "getButton_px 1: nRows=%d, (%f, %f), ky=%f", layout[LAYOUT_IDX_ROW_COUNT], x, y, y*layout[LAYOUT_IDX_ROW_COUNT]/layout[LAYOUT_IDX_HEIGHT_PX]));//DEBUG
+			if(ky>=0&&ky<layout[LAYOUT_IDX_ROW_COUNT])
+			{
+				int rowStartIdx=layout[2+ky], nextRowStartIdx=layout[ky+3];
+				int nButtons=(nextRowStartIdx-rowStartIdx-1)/2;
+				//addError(String.format(loc, "getButton_px 2: ky=%d, nButtons=%d", ky, nButtons));//DEBUG
+				for(int kx=0;kx<nButtons;++kx)
+				{
+					int idx=rowStartIdx+kx*2;
+					//addError(String.format(loc, "getButton_px 3: testing [%d]= %08X %d~%d", idx, layout[idx+1], layout[idx], layout[idx+2]));//DEBUG
+					if(x>=layout[idx]&&x<layout[idx+2])
+					{
+						button.ky=ky;
+						button.kx=kx;
+						button.x1=layout[idx];
+						button.code=layout[idx+1];
+						button.x2=layout[idx+2];
+						button.y1=(int)(y*layout[LAYOUT_IDX_HEIGHT_PX]/layout[LAYOUT_IDX_ROW_COUNT]);
+						button.y2=(int)((y+1)*layout[LAYOUT_IDX_HEIGHT_PX]/layout[LAYOUT_IDX_ROW_COUNT]);
+						break;
+					}
+				}
+			}
+		}
+	/*	for(int ky=0, nRows=layout.size();ky<nRows;++ky)
 		{
 			int[] row=layout.get(ky);
 			int y1=row[0], y2=row[1];
@@ -519,7 +592,7 @@ public class CKBview3 extends ViewGroup
 					}
 				}
 			}
-		}
+		}//*/
 		return button;
 	}
 	public ButtonIdx getButton_px_static(int[][] layout, int x1, int x2, int y1, int y2, float x, float y)
@@ -573,9 +646,40 @@ public class CKBview3 extends ViewGroup
 		}
 		setLayoutParams(lp);
 	}
-	private void get_layout(int nRows)
+	private void get_layout(int layoutIdx, boolean hasExtension)
 	{
-		layout.clear();
+		int[] nextLayout=CKBnativelib.getLayout(layoutIdx, hasExtension);
+		if(nextLayout==null)
+		{
+			addError(String.format(loc, "Failed to switch layout to idx=%d%s", layoutIdx, hasExtension?" with extension":""));
+			return;
+		}
+		layout=nextLayout;
+		kb_h=layout[LAYOUT_IDX_HEIGHT_PX];
+		set_kb_height(kb_h);
+		switch(layoutIdx)
+		{
+		case -3:
+			layoutName="Symbols";
+			break;
+		case -2:
+			layoutName="DecNumPad";
+			break;
+		case -1:
+			layoutName="NumPad";
+			break;
+		default:
+			if(layoutIdx>=0&&layoutIdx<layoutInfo[INFO_IDX_LAYOUT_COUNT])
+				layoutName=layoutNames.get(layoutIdx);
+			else
+			{
+				layoutName=null;
+				addError(String.format(loc, "Layout index is out of bounds: idx=%d, nLayouts=%d", layoutIdx, layoutInfo[INFO_IDX_LAYOUT_COUNT]));
+			}
+			break;
+		}
+
+	/*	layout.clear();
 		layout.ensureCapacity(nRows);
 		for(int k=0;k<nRows;++k)
 		{
@@ -594,11 +698,47 @@ public class CKBview3 extends ViewGroup
 		//lp.height=kb_h;
 		//setLayoutParams(lp);
 
-		layoutName=CKBnativelib.getLayoutName();
+		layoutName=CKBnativelib.getLayoutName();//*/
+	}
+	public void toggleSymbolsExtension()
+	{
+		layoutHasExtension=!layoutHasExtension;
+		get_layout(layoutInfo[INFO_IDX_SELECTED_IDX], layoutHasExtension);
+		//invalidate();
 	}
 	private void get_layout_backup()
 	{
-		layout.clear();
+		int nRows=backup_layout_port.length;
+		int nButtonsTotal=0;
+		for(int[] ints: backup_layout_port)
+			nButtonsTotal+=ints.length/2;
+
+		int arrCount=3+nRows*2+nButtonsTotal*2;
+		layout=new int[arrCount];
+		layout[LAYOUT_IDX_ROW_COUNT]=nRows;
+		layout[LAYOUT_IDX_HEIGHT_PX]=(int)(backup_height*h);
+		layout[2+nRows]=arrCount;
+		int rowStartIdx=0;
+		for(int kr=0;kr<nRows;++kr)
+		{
+			layout[2+kr]=rowStartIdx;
+			int[] row=backup_layout_port[kr];
+			int nButtons=row.length/2;
+			int relativeWidth=0;
+			for(int kb=0;kb<nButtons;++kb)
+				relativeWidth+=row[kb*2+1];
+			int x=0;
+			layout[rowStartIdx]=0;//first x1
+			for(int kb=0;kb<nButtons;++kb)
+			{
+			//	layout[rowStartIdx+kb*2]=x*w/relativeWidth;		//x1
+				layout[rowStartIdx+kb*2+1]=row[kb*2];			//code
+				x+=row[kb*2+1];
+				layout[rowStartIdx+kb*2+2]=x*w/relativeWidth;	//x2
+			}
+		}
+
+	/*	layout.clear();
 		layout.ensureCapacity(backup_layout_port.length);
 		kb_h=(int)(backup_height*h);
 		kb_y1=h-kb_h;
@@ -622,9 +762,9 @@ public class CKBview3 extends ViewGroup
 			layout.add(dst);
 		}
 		//if(setKbHeight)
-		set_kb_height(kb_h);
+		set_kb_height(kb_h);//*/
 	}
-	public void switchLayout()
+/*	public void switchLayout()
 	{
 		int nRows=CKBnativelib.nextLayout();
 		if(nRows<1)
@@ -643,7 +783,7 @@ public class CKBview3 extends ViewGroup
 			return;
 		}
 		get_layout(nRows);
-	}
+	}//*/
 	public void toggleUnicode()
 	{
 		//addError("toggleUnicode()");//DEBUG
@@ -661,16 +801,22 @@ public class CKBview3 extends ViewGroup
 			//kb_h=(int)(0.6*h);
 			//set_kb_height(kb_h);
 		}
-		else//turn off unicode
-		{
-			int nRows=CKBnativelib.currentLayout();
-			if(nRows<1)
-			{
-				addError("Failed to switch layout");
-				return;
-			}
-			get_layout(nRows);
-		}
+		else if(layout!=null)//turn off unicode
+			set_kb_height(layout[LAYOUT_IDX_HEIGHT_PX]);
+
+
+		//else turn off unicode, apparently nothing is needed to be done, because unicode search doesn't use int[] layout
+
+		//else//turn off unicode
+		//{
+		//	int nRows=CKBnativelib.currentLayout();
+		//	if(nRows<1)
+		//	{
+		//		addError("Failed to switch layout");
+		//		return;
+		//	}
+		//	get_layout(nRows);
+		//}
 	}
 	public boolean uniSearch_isScrollable()
 	{
@@ -781,15 +927,18 @@ public class CKBview3 extends ViewGroup
 			{
 			case InputType.TYPE_TEXT_VARIATION_URI:
 				mode=MODE_URL;
+				layoutHasExtension=true;
 				break;
 			case InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS:
 			case InputType.TYPE_TEXT_VARIATION_EMAIL_SUBJECT:
 				mode=MODE_EMAIL;
+				layoutHasExtension=true;
 				break;
 			case InputType.TYPE_TEXT_VARIATION_PASSWORD:
 			case InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD:
 			case InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD:
 				mode=MODE_PASSWORD;
+				layoutHasExtension=true;
 				break;
 			case InputType.TYPE_TEXT_VARIATION_NORMAL:
 			case InputType.TYPE_TEXT_VARIATION_SHORT_MESSAGE:
@@ -841,16 +990,17 @@ public class CKBview3 extends ViewGroup
 			break;
 		}
 
-		int nRows=CKBnativelib.init(mode, numeric_signed||numeric_decimal?1:0, w, h);
+		layoutInfo=CKBnativelib.init(mode, numeric_signed||numeric_decimal?1:0, w, h);
+		//int nRows=CKBnativelib.init(mode, numeric_signed||numeric_decimal?1:0, w, h);
 		int nErrors=CKBnativelib.getNErrors();
 		//addError("init: "+nErrors+" errors");
-		if(nErrors>0)
+		if(layoutInfo==null||nErrors>0)
 		{
 			service.displayToast(CKBnativelib.getError(0));//toast just the first error for now
 			for(int ke=0;ke<nErrors;++ke)
 				addError(CKBnativelib.getError(ke));
 		}
-		theme_colors=CKBnativelib.getColors();
+		theme_colors=CKBnativelib.getTheme();
 		boolean theme_invalid=true;
 		if(theme_colors!=null)
 		{
@@ -889,16 +1039,52 @@ public class CKBview3 extends ViewGroup
 		Drawable bk=DrawableCompat.wrap(preview.getBackground()).mutate();
 		DrawableCompat.setTint(bk, theme_colors[COLOR_BUTTON_PRESSED]);//change preview bkColor
 
-		if(nRows==0)
+		if(layoutInfo==null)
 		{
-			service.displayToast("Layout error. Opening backup layout.");
+			service.displayToast("LayoutInfo error. Opening backup layout.");
 			get_layout_backup();
 		}
 		else
-			get_layout(nRows);
+		{
+			int nLayouts=layoutInfo[INFO_IDX_LAYOUT_COUNT];
+			//boolean broken=false;
+			for(int kl=0;kl<nLayouts;++kl)//only 'lang' layouts
+			{
+				String name=CKBnativelib.getLayoutName(kl);
+				if(name==null)
+				{
+					addError(String.format(loc, "Error retrieving name of layout %d, nLayouts=%d", kl, nLayouts));
+					layoutNames.add("Error");
+
+					//broken=true;
+					//break;
+				}
+				else
+					layoutNames.add(name);
+			}
+			//if(broken)
+			//{
+			//	addError("Error retrieving layout names");
+			//	layoutNames=null;
+			//}
+			get_layout(layoutInfo[INFO_IDX_SELECTED_IDX], layoutHasExtension);
+			//if(layout!=null)//DEBUG
+			//{
+			//	addError("Received:");
+			//	for(int k=0;k<layout.length;++k)
+			//		addError(String.format(loc, "layout[%d]=%d", k, layout[k]));
+			//}
+		}
+
+		if(layout==null)
+		{
+			service.displayToast("Layout error. Opening backup layout.");
+			layoutNames.clear();
+			get_layout_backup();
+		}
 
 		ccGridX=ceilMultiple((int)(textSize*1.5), w);
-		ccGridY=kb_h/layout.size();
+		ccGridY=layout[LAYOUT_IDX_HEIGHT_PX]/layout[LAYOUT_IDX_ROW_COUNT];
 
 		//set_kb_height(kb_h);//get_layout sets kb_h
 		invalidate();
@@ -976,6 +1162,11 @@ public class CKBview3 extends ViewGroup
 		rectf.set(x1, y1, x2, y2);
 		canvas.drawRect(rectf, paint);
 	}
+	void drawRoundRect(float x1, float x2, float y1, float y2, float radius, Paint paint, Canvas canvas)
+	{
+		rectf.set(x1, y1, x2, y2);
+		canvas.drawRoundRect(rectf, radius, radius, paint);
+	}
 	void drawTouchMark(int touchId, int color, Canvas canvas)
 	{
 		int idx=touchInfo.findPointerIndex(touchId);
@@ -997,19 +1188,21 @@ public class CKBview3 extends ViewGroup
 			for(int ky=y1;ky<y2;ky+=ccGridY)//draw grid
 			{
 				for(int kx=x1;kx<x2;kx+=ccGridX)
-				{
-					rectf.set(kx+radius, ky+radius, kx+ccGridX-radius, ky+ccGridY-radius);
-					canvas.drawRoundRect(rectf, radius, radius, buttonPaint);
-				}
+					drawRoundRect(kx+radius, kx+ccGridX-radius, ky+radius, ky+ccGridY-radius, radius, buttonPaint, canvas);
+				//{
+				//	rectf.set(kx+radius, ky+radius, kx+ccGridX-radius, ky+ccGridY-radius);
+				//	canvas.drawRoundRect(rectf, radius, radius, buttonPaint);
+				//}
 			}
 		}
 		else
 		{
 			for(int kx=x1;kx<x2;kx+=ccGridX)
-			{
-				rectf.set(kx+radius, radius, kx+ccGridX-radius, kb_h-radius);
-				canvas.drawRoundRect(rectf, radius, radius, buttonPaint);
-			}
+				drawRoundRect(kx+radius, kx+ccGridX-radius, radius, kb_h-radius, radius, buttonPaint, canvas);
+			//{
+			//	rectf.set(kx+radius, radius, kx+ccGridX-radius, kb_h-radius);
+			//	canvas.drawRoundRect(rectf, radius, radius, buttonPaint);
+			//}
 		}
 	}
 	void draw_kb_button(int x1, int x2, int y1, int y2, int kx, int ky, int code, float radius, Canvas canvas)
@@ -1020,14 +1213,13 @@ public class CKBview3 extends ViewGroup
 		int dx=x2-x1, dy=y2-y1;
 		canvas.translate(x1, y1);
 
-		rectf.set(radius, radius, dx-radius, dy-radius);
 		int color=buttonPaint.getColor(), color2=color;
 		boolean colorWasSet=false;
 		if((code&MODMASK)!=0)
 		{
 			switch(code&~MODMASK)//check long-pressable keys
 			{
-			case KEY_LAYOUT:if(isActive_layout){colorWasSet=true; color2=theme_colors[COLOR_BUTTON_PRESSED];}	break;
+		//	case KEY_LAYOUT:if(isActive_layout){colorWasSet=true; color2=theme_colors[COLOR_BUTTON_PRESSED];}	break;
 			case KEY_CTRL:	if(isActive_ctrl){	colorWasSet=true; color2=theme_colors[COLOR_BUTTON_PRESSED];}	break;
 			case KEY_ALT:	if(isActive_alt){	colorWasSet=true; color2=theme_colors[COLOR_BUTTON_PRESSED];}	break;
 
@@ -1047,22 +1239,24 @@ public class CKBview3 extends ViewGroup
 		}
 		if(colorWasSet)
 			buttonPaint.setColor(color2);
-		if(DEBUG_STATE)//TODO REMOVE AT RELEASE
-		{
-			if(code==(MODMASK|KEY_SHIFT)&&tap_y!=-1&&tap_x!=-1)
-			{
-				int[] row2=layout.get(tap_y);
-				int temp_idx=3+tap_x*2, x1_b=row2[temp_idx-1], code_b=row2[temp_idx], x2_b=row2[temp_idx+1];
-				if(code_b==(MODMASK|KEY_NAB))
-					Log.e(TAG, String.format(loc, "%d  c1=0x%08X, c2=0x%08X, tap(%d, %d)", frame_counter, color, color2, tap_x, tap_y));
-				else
-				{
-					String label2=getLabel(code_b);
-					Log.e(TAG, String.format(loc, "%d  c1=0x%08X, c2=0x%08X, tap(%d, %d): %s", frame_counter, color, color2, tap_x, tap_y, label2));
-				}
-			}
-		}
-		canvas.drawRoundRect(rectf, radius, radius, buttonPaint);
+		//if(DEBUG_STATE)//FIXME remove this
+		//{
+		//	if(code==(MODMASK|KEY_SHIFT)&&tap_y!=-1&&tap_x!=-1)
+		//	{
+		//		int[] row2=layout.get(tap_y);
+		//		int temp_idx=3+tap_x*2, x1_b=row2[temp_idx-1], code_b=row2[temp_idx], x2_b=row2[temp_idx+1];
+		//		if(code_b==(MODMASK|KEY_NAB))
+		//			Log.e(TAG, String.format(loc, "%d  c1=0x%08X, c2=0x%08X, tap(%d, %d)", frame_counter, color, color2, tap_x, tap_y));
+		//		else
+		//		{
+		//			String label2=getLabel(code_b);
+		//			Log.e(TAG, String.format(loc, "%d  c1=0x%08X, c2=0x%08X, tap(%d, %d): %s", frame_counter, color, color2, tap_x, tap_y, label2));
+		//		}
+		//	}
+		//}
+		drawRoundRect(radius, dx-radius, radius, dy-radius, radius, buttonPaint, canvas);
+		//rectf.set(radius, radius, dx-radius, dy-radius);
+		//canvas.drawRoundRect(rectf, radius, radius, buttonPaint);
 		if(colorWasSet)
 			buttonPaint.setColor(color);
 
@@ -1076,6 +1270,9 @@ public class CKBview3 extends ViewGroup
 		else
 			code_case=Character.toLowerCase(code);
 		String label=getLabel(code_case);
+
+		//addError(String.format(loc, "drawing %s", label));//DEBUG
+
 		if(label.length()>1)
 		{
 			if(p==null)
@@ -1100,9 +1297,9 @@ public class CKBview3 extends ViewGroup
 		{
 			float x=dx*0.5f, y=dy*0.5f+currentSize*0.15f;//button center + correction offset
 
-			p.getTextBounds("Ig", 0, 2, mBounds);//https://stackoverflow.com/questions/3153870/canvas-drawtext-does-not-print-linebreak
+			p.getTextBounds("Ig", 0, 2, rect);//https://stackoverflow.com/questions/3153870/canvas-drawtext-does-not-print-linebreak
 			float
-				lineHeight=(int)((float)mBounds.height()*1.2f),
+				lineHeight=(int)((float)rect.height()*1.2f),
 				yOffset=0;
 			String[] lines=label.split("\n");
 			y-=(lines.length-1)*lineHeight/2;
@@ -1142,17 +1339,17 @@ public class CKBview3 extends ViewGroup
 	int drawText_byTopLeft(String text, float x, float y, boolean centerX, boolean centerY, Paint paint, Canvas canvas)
 	{
 		if(!centerX||!centerY)
-			paint.getTextBounds(text, 0, text.length(), mBounds);
+			paint.getTextBounds(text, 0, text.length(), rect);
 		if(!centerX)
-			x+=mBounds.exactCenterX();
+			x+=rect.exactCenterX();
 
 		//addError(String.format(loc, "PRINTING %s", text));//DEBUG-3
-		//addError(String.format(loc, "y0 %f centerY %d exactCenterY %f, height %d", y, centerY?1:0, mBounds.exactCenterY(), mBounds.height()));
+		//addError(String.format(loc, "y0 %f centerY %d exactCenterY %f, height %d", y, centerY?1:0, rect.exactCenterY(), rect.height()));
 
 		if(!centerY)
-			y+=mBounds.height();
+			y+=rect.height();
 		canvas.drawText(text, x, y, paint);
-		return mBounds.height();
+		return rect.height();
 	}
 	int drawText_wrap(String text, int x1, int x2, int y, Canvas canvas)
 	{
@@ -1170,29 +1367,44 @@ public class CKBview3 extends ViewGroup
 	}
 	void draw_searchResults(int x1, int x2, int y1, int y2, Canvas canvas)
 	{
+		float radius=10,
+			r2=radius/2;
 		int color=buttonPaint.getColor();
 		float ya=y1-uniSearch_wpy;
-		for(int k=0;k<uniSearch_results.size()&&ya<y2;++k)		//print search results
+		if(uniSearch_results.size()>0)
 		{
-			float yb=ya+UNI_SEARCH_ROW_HEIGHT;
-			SearchResult result=uniSearch_results.get(k);
+			for(int k=0;k<uniSearch_results.size()&&ya<y2;++k)		//print search results
+			{
+				float yb=ya+UNI_SEARCH_ROW_HEIGHT;
+				SearchResult result=uniSearch_results.get(k);
 
-			buttonPaint.setColor((k&1)!=0?0xC0A0A0A0:0xC0D0D0D0);//alternating shades
-			//buttonPaint.setColor(0xC0C0C0C0);
-			rectf.set((float)x1+5, ya+5, (float)x2-5, yb-5);
-			canvas.drawRoundRect(rectf, 10f, 10f, buttonPaint);
+				buttonPaint.setColor((k&1)!=0?0xC0A0A0A0:0xC0D0D0D0);//alternating shades
+				//buttonPaint.setColor(0xC0C0C0C0);
+				drawRoundRect((float)x1+r2, (float)x2-r2, ya+r2, yb-r2, radius, buttonPaint, canvas);
+				//rectf.set((float)x1+r2, ya+r2, (float)x2-r2, yb-r2);
+				//canvas.drawRoundRect(rectf, radius, radius, buttonPaint);
 
-			//drawText_wrap(result.displayString, x1+10, x2-10, (int)((ya+yb)*0.5f), canvas);
-			//drawText_wrap(result.displayString, x1+10, x2-10, (int)ya, canvas);
-			drawText_byTopLeft(result.displayString, x1+10, (ya+yb)*0.5f, false, true, textPaint, canvas);
+				//drawText_wrap(result.displayString, x1+radius, x2-radius, (int)((ya+yb)*0.5f), canvas);
+				//drawText_wrap(result.displayString, x1+radius, x2-radius, (int)ya, canvas);
+				drawText_byTopLeft(result.displayString, x1+radius, (ya+yb)*0.5f, false, true, textPaint, canvas);
 
-			ya=yb;
+				ya=yb;
+			}
+		}
+		else
+		{
+			buttonPaint.setColor(0xC0A0A0A0);
+			drawRoundRect(x1+r2, x2-r2, y1+r2, y2-r2, radius, buttonPaint, canvas);
+			//rectf.set(x1+r2, y1+r2, x2-r2, y2-r2);
+			//canvas.drawRoundRect(rectf, radius, radius, buttonPaint);
+
+			drawText_byTopLeft("(no results)", (x1+x2)*0.5f, (y1+y2)*0.5f, true, true, textPaint, canvas);
 		}
 		buttonPaint.setColor(color);
 	}
 	@Override public void onDraw(Canvas canvas)
 	{
-		if(pend_switch!=0)
+	/*	if(pend_switch!=0)
 		{
 			if(pend_switch==1)
 				switchLayout();
@@ -1201,8 +1413,16 @@ public class CKBview3 extends ViewGroup
 			//else if(pend_switch==3)
 			//	toggleUnicode();
 			pend_switch=0;
-		}
+		}//*/
 		float radius=10;
+
+		//addError(String.format(loc, "mode_unicode=%d, cursor_control=%d", mode_unicode?1:0, cursor_control));//DEBUG
+		//if(layoutInfo!=null)
+		//	addError(String.format(loc, "layoutIdx=%d, nLayouts=%d", layoutInfo[INFO_IDX_SELECTED_IDX], layoutInfo[INFO_IDX_LAYOUT_COUNT]));
+		//if(layout!=null)//
+		//{
+		//	addError(String.format(loc, "arrSize=%d, nRows=%d, layoutHeight=%d", layout.length, layout[LAYOUT_IDX_ROW_COUNT], layout[LAYOUT_IDX_HEIGHT_PX]));
+		//}
 
 		canvas.drawColor(theme_colors[COLOR_BACKGROUND]);//same everywhere
 		if(mode_unicode)
@@ -1210,7 +1430,7 @@ public class CKBview3 extends ViewGroup
 			float textSizeFactor=1.3f;
 			float textSize=textPaint.getTextSize();
 			//float textMarginX=10, textMarginY=10;
-			float textMarginX=0, textMarginY=0;//
+			float textMarginX=0, textMarginY=0, queryMarginX=30;//
 			int nResults=uniSearch_results.size();
 			uniSearch_setRowHeight();
 			if(w<h)//portrait
@@ -1251,7 +1471,7 @@ public class CKBview3 extends ViewGroup
 					buttonPaint.setColor(color);
 				}
 
-				drawText_byTopLeft(uniSearch_query.toString(), textMarginX, (UNI_SEARCH_PORT_Y1+UNI_SEARCH_PORT_Y2)*0.5f, false, true, textPaint, canvas);//print search query
+				drawText_byTopLeft(uniSearch_query.toString(), queryMarginX, (UNI_SEARCH_PORT_Y1+UNI_SEARCH_PORT_Y2)*0.5f, false, true, textPaint, canvas);//print search query
 				//canvas.drawText(uniSearch_query.toString(), textMarginX, UNI_SEARCH_PORT_Y1+textMarginY, textPaint);
 				//textPaint.setTextAlign(Paint.Align.CENTER);
 
@@ -1313,7 +1533,32 @@ public class CKBview3 extends ViewGroup
 			//addError(String.format(loc, "UNI_SEARCH_ROW_HEIGHT=%f", UNI_SEARCH_ROW_HEIGHT));
 			return;
 		}
-		if(cursor_control!=CC_DISABLED)
+		if(cursor_control==CC_LANG)
+		{
+			if(layoutInfo!=null)
+			{
+				int nLayouts=layoutInfo[INFO_IDX_LAYOUT_COUNT];
+				int choice=-1;
+				TouchInfo.Pointer pointer=touchInfo.findPointer(touchId_switchLang);
+				if(pointer!=null)
+					choice=(int)(pointer.x*nLayouts/w);
+				int color=buttonPaint.getColor();
+				for(int kl=0;kl<nLayouts;++kl)
+				{
+					if(kl==choice)
+						buttonPaint.setColor(theme_colors[COLOR_BUTTON_PRESSED]);
+					drawRoundRect((float)kl*w/nLayouts+25, (float)(kl+1)*w/nLayouts-25, 25, kb_h-25, 50, buttonPaint, canvas);
+					if(kl==choice)
+						buttonPaint.setColor(color);
+				}
+				float size=textPaint.getTextSize();
+				textPaint.setTextSize(size*4);
+				for(int kl=0;kl<layoutNames.size();++kl)
+					drawText_byTopLeft(layoutNames.get(kl), (float)(kl+0.5f)*w/nLayouts, (float)kb_h*0.5f, true, true, textPaint, canvas);
+				textPaint.setTextSize(size);
+			}
+		}
+		else if(cursor_control!=CC_DISABLED)
 		{
 			draw_cc_grid(0, w, 0, kb_h, radius, canvas);
 
@@ -1338,9 +1583,25 @@ public class CKBview3 extends ViewGroup
 			}
 			penPaint.setColor(color);
 		}
-		else//normal keyboard
+		else if(layout!=null)//normal keyboard
 		{
-			for(int ky=0, nRows=layout.size();ky<nRows;++ky)
+			int nRows=layout[LAYOUT_IDX_ROW_COUNT];
+			for(int ky=0;ky<nRows;++ky)
+			{
+				int rowStartIdx=layout[2+ky], nextRowStartIdx=layout[ky+3];
+				int nButtons=(nextRowStartIdx-rowStartIdx-1)/2;
+				int y1=ky*kb_h/nRows;
+				int y2=(ky+1)*kb_h/nRows;
+				//addError(String.format(loc, "ky=%d rowStartIdx=%d, nextRowStartIdx=%d nButtons=%d y1=%d y2=%d", ky, rowStartIdx, nextRowStartIdx, nButtons, y1, y2));//DEBUG
+				for(int kx=0;kx<nButtons;++kx)
+				{
+					int x1	=layout[rowStartIdx+kx*2];
+					int code=layout[rowStartIdx+kx*2+1];
+					int x2	=layout[rowStartIdx+kx*2+2];
+					draw_kb_button(x1, x2, y1, y2, kx, ky, code, radius, canvas);
+				}
+			}
+		/*	for(int ky=0, nRows=layout.size();ky<nRows;++ky)
 			{
 				int[] row=layout.get(ky);
 				int y1=row[0], y2=row[1], nButtons=(row.length-3)/2;
@@ -1350,7 +1611,7 @@ public class CKBview3 extends ViewGroup
 						x1=row[idx-1], code=row[idx], x2=row[idx+1];
 					draw_kb_button(x1, x2, y1, y2, kx, ky, code, radius, canvas);
 				}//end row loop
-			}//end keyboard loop
+			}//end keyboard loop		//*/
 		}
 
 	/*	if(DEBUG_TOUCH)//multitouch test
@@ -1433,22 +1694,24 @@ public class CKBview3 extends ViewGroup
 	//	case MODMASK|KEY_STD:case MODMASK|KEY_SYM:case MODMASK|KEY_SPK:case MODMASK|KEY_FUN:
 	//	case MODMASK|KEY_TRANSPARENT:
 		case MODMASK|KEY_SETTINGS:
-	//	case MODMASK|KEY_UNICODE:
-		case MODMASK|KEY_LAYOUT:
+		case MODMASK|KEY_UNICODE:
+		case MODMASK|KEY_SYMBOLS:
 			return false;
 		}
 		return true;
 	}
 	boolean isLongPressableKey(int code)
 	{
-		switch(code)
+		return code==(MODMASK|KEY_SHIFT);//only shift has long press action
+
+	/*	switch(code)			//X
 		{
 		case MODMASK|KEY_SHIFT:		//sends pure down, stays on
-		case MODMASK|KEY_LAYOUT:	//switches language
+	//	case MODMASK|KEY_LAYOUT:	//switches language
 	//	case MODMASK|KEY_SETTINGS:	//toggles unicode mode
 			return true;
 		}
-		return false;
+		return false;//*/
 	}
 
 	//cursor control
@@ -1458,7 +1721,7 @@ public class CKBview3 extends ViewGroup
 		isActive_shift=false;	service.onKeyCallback(MODMASK|KEY_SHIFT, 2);
 	//	isActive_ctrl=false;	service.onKeyCallback(MODMASK|KEY_CTRL, 2);
 	//	isActive_alt=false;		service.onKeyCallback(MODMASK|KEY_ALT, 2);
-		isActive_layout=false;
+	//	isActive_layout=false;
 	}
 	void applyCursorControl(TouchInfo.Pointer ti, int cc_flags)
 	{
@@ -1523,6 +1786,12 @@ public class CKBview3 extends ViewGroup
 				Log.e(TAG, String.format(loc, "%s: CC=%d CURSOR: shift_id=%d, cursor_id=%d", tag, cursor_control, touchId_shift, touchId_selStart));
 			else
 				Log.e(TAG, String.format(loc, "%s: CC=%d CURSOR: cursor_id=%d", tag, cursor_control, touchId_selStart));
+			break;
+		case CC_LANG:
+			if(isHeld_shift)
+				Log.e(TAG, String.format(loc, "%s: CC=%d LANG: shift_id=%d, cursor_id=%d", tag, cursor_control, touchId_shift, touchId_switchLang));
+			else
+				Log.e(TAG, String.format(loc, "%s: CC=%d LANG: cursor_id=%d", tag, cursor_control, touchId_switchLang));
 			break;
 		}
 	}
@@ -1743,49 +2012,61 @@ public class CKBview3 extends ViewGroup
 		if(pointer.state==TouchInfo.S_UP||pointer.state==TouchInfo.S_CANCEL)
 		{
 			hideKeyPreview();
-			if(button.code==longPressTask.code||button.code==turboTask.code)
-			{
-				if(button.code==longPressTask.code)
-					longPressTask.code=MODMASK|KEY_NAB;
-				if(button.code==turboTask.code)
-					turboTask.code=MODMASK|KEY_NAB;
-				timerOn=0;
-				timer.cancel();
-			}
+			//if(button.code==longPressTask.code||button.code==turboTask.code)
+			//{
+			//	if(button.code==longPressTask.code)
+			//		longPressTask.code=MODMASK|KEY_NAB;
+			//	if(button.code==turboTask.code)
+			//		turboTask.code=MODMASK|KEY_NAB;
+			//	timerOn=0;
+			//	timer.cancel();
+			//}
 		}
 		if(pointer.state!=TouchInfo.S_CANCEL)
 		{
 			if(pointer.state==TouchInfo.S_DOWN)
 			{
-				switch(button.code)
+				//FIXME
+				//here backspace works on pointer.up instead of the usual pointer.down
+				//because of an infuriating bug
+				//	where you press backspace and it types some key above backspace immediately
+				if(button.code==(MODMASK|KEY_SHIFT))
 				{
-				case MODMASK|KEY_SHIFT:
 					isActive_shift=!isActive_shift;
 					invalidate();
-					break;
-				case '\b':
-					if(uniSearch_query.length()>0)
-					{
-						uniSearch_query.deleteCharAt(uniSearch_query.length()-1);
-						uniSearch_updateResults();
-						invalidate();
-					}
-					break;
 				}
-				//if(button.code==(MODMASK|KEY_SHIFT)||button.code=='\b')
-				//	service.onKeyCallback(button.code, 3);
+				//switch(button.code)
+				//{
+				//case MODMASK|KEY_SHIFT:
+				//	isActive_shift=!isActive_shift;
+				//	invalidate();
+				//	break;
+				//case '\b':
+				//	if(uniSearch_query.length()>0)
+				//	{
+				//		uniSearch_query.deleteCharAt(uniSearch_query.length()-1);
+				//		uniSearch_updateResults();
+				//		invalidate();
+				//	}
+				//	break;
+				//}
 			}
 			else if(pointer.state==TouchInfo.S_UP)
 			{
-				if((button.code&MODMASK)==MODMASK||button.code=='\b')
+				if((button.code&MODMASK)==MODMASK||button.code==127)
 					return;
-				uniSearch_query.appendCodePoint(button.code);
+				//if(button.code=='\b')
+				//	return;
+				if(button.code=='\b')
+					uniSearch_query.deleteCharAt(uniSearch_query.length()-1);
+				else
+					uniSearch_query.appendCodePoint(button.code);
 				uniSearch_updateResults();
 				invalidate();
 			}
 		}
 	}
-	void uniSearch_handle_resultBox(int x1, int x2, int y1, int y2, TouchInfo.Pointer pointer)
+	void uniSearch_handle_resultBox(TouchInfo.Pointer pointer)
 	{
 		if(uniSearch_drag==UNI_SEARCH_DRAG_NONE)
 		{
@@ -1835,7 +2116,7 @@ public class CKBview3 extends ViewGroup
 		touchInfo.update(e);
 		int np=e.getPointerCount(), size=touchInfo.size();
 
-		if(DEBUG_TOUCH)//tracking seems perfect
+		if(DEBUG_TOUCH)//pointer tracking seems perfect		FIXME remove this
 		{
 			Log.e(TAG, String.format(loc, "%d FRAME: ti.size=%d, np=%d%s", frame_counter, size, np, size!=np?", !!!BROKEN!!!":""));
 			for(int k=0;k<size;++k)
@@ -1902,6 +2183,8 @@ public class CKBview3 extends ViewGroup
 			isHeld_shift=false;
 		if(mode_unicode)
 		{
+			//addError(String.format(loc, "TOUCH: mode_unicode"));//DEBUG
+
 			int idx=touchInfo.findPointerIndex(0);//find 1st pointer
 			if(idx==touchInfo.size())//ignore other pointers
 				return true;
@@ -1920,9 +2203,13 @@ public class CKBview3 extends ViewGroup
 			if(w<h)//portrait
 			{
 				if(pointer.starty<UNI_SEARCH_PORT_Y1)//search results box
-					uniSearch_handle_resultBox(0, w, 0, UNI_SEARCH_PORT_Y1, pointer);
+					uniSearch_handle_resultBox(pointer);
+					//uniSearch_handle_resultBox(0, w, 0, UNI_SEARCH_PORT_Y1, pointer);
 				else if(pointer.starty<UNI_SEARCH_PORT_Y2)//search bar
-					toggleUnicode();//UNEXPECTED
+				{
+					bypass=true;
+					toggleUnicode();//FIXME provide a visual clue on how to exit unicode search
+				}
 				else if(pointer.starty<kb_h)//keyboard
 					uniSearch_handle_layout(backup_layout_port, 0, w, UNI_SEARCH_PORT_Y2, kb_h, pointer);
 			}
@@ -1933,9 +2220,13 @@ public class CKBview3 extends ViewGroup
 				else if(pointer.startx<UNI_SEARCH_LAND_X2)
 				{
 					if(pointer.starty<UNI_SEARCH_LAND_Y1)//search bar
-						uniSearch_handle_resultBox(UNI_SEARCH_LAND_X1, UNI_SEARCH_LAND_X2, 0, UNI_SEARCH_LAND_Y1, pointer);
+						uniSearch_handle_resultBox(pointer);
+						//uniSearch_handle_resultBox(UNI_SEARCH_LAND_X1, UNI_SEARCH_LAND_X2, 0, UNI_SEARCH_LAND_Y1, pointer);
 					else//results box
-						toggleUnicode();//UNEXPECTED
+					{
+						bypass=true;
+						toggleUnicode();//FIXME provide a visual clue on how to exit unicode search
+					}
 				}
 				else//QWERTY right
 					uniSearch_handle_layout(backup_layout_land_right, UNI_SEARCH_LAND_X2, w, 0, kb_h, pointer);
@@ -1989,6 +2280,9 @@ public class CKBview3 extends ViewGroup
 					ButtonIdx
 						bIdx0=getButton_px(ti.prevx, ti.prevy),
 						bIdx=getButton_px(ti.x, ti.y);
+
+					//addError(String.format(loc, "TOUCH: normal, state=%d, code=0x%08X", ti.state, bIdx.code));//DEBUG
+
 					switch(ti.state)
 					{
 					case TouchInfo.S_DOWN://normal keyboard
@@ -2039,17 +2333,27 @@ public class CKBview3 extends ViewGroup
 						if(bIdx.ky!=bIdx0.ky||bIdx.kx!=bIdx0.kx)//turn on cursor control
 						{
 							tap_x=-1; tap_y=-1;
-							if(isHeld_shift&&ti.id!=touchId_shift)
+							if(bIdx0.code==' ')
 							{
-								cursor_control=CC_SEL_END; touchId_selEnd=ti.id;
+								cursor_control=CC_LANG;
+								touchId_switchLang=ti.id;
 							}
 							else
 							{
-								cursor_control=CC_CURSOR; touchId_selStart=ti.id;
+								if(isHeld_shift&&ti.id!=touchId_shift)
+								{
+									cursor_control=CC_SEL_END;
+									touchId_selEnd=ti.id;
+								}
+								else
+								{
+									cursor_control=CC_CURSOR;
+									touchId_selStart=ti.id;
+								}
+								//ccX1=(int)(ti.x/ccGridX);
+								//ccY1=(int)(ti.y/ccGridY);
+								showKeyPreview(bIdx, "Cursor\nControl");
 							}
-							//ccX1=(int)(ti.x/ccGridX);
-							//ccY1=(int)(ti.y/ccGridY);
-							showKeyPreview(bIdx, "Cursor\nControl");
 							if(timerOn!=0)
 							{
 								timerOn=0;
@@ -2118,6 +2422,8 @@ public class CKBview3 extends ViewGroup
 
 							if(bIdx.code==(MODMASK|KEY_UNICODE))
 								toggleUnicode();
+							else if(bypass)
+								bypass=false;
 							else if(bIdx.code!='\b'&&bIdx.code!=(MODMASK|KEY_SHIFT)&&!handled&&ti.state!=TouchInfo.S_CANCEL)//2022-07-07 this if condition was moved from the bottom of the code block
 								service.onKeyCallback(bIdx.code, 3);
 
@@ -2134,6 +2440,25 @@ public class CKBview3 extends ViewGroup
 				}
 			}
 		}//end CC_DISABLED
+		else if(cursor_control==CC_LANG)//switch language
+		{
+			int idx=touchInfo.findPointerIndex(touchId_switchLang);
+			//addError(String.format(loc, "TOUCH: lang, touchId=%d, touchIdx=%d, count=%d", touchId_switchLang, idx, size));//DEBUG
+			if(idx>=size)
+				cursor_control=CC_DISABLED;
+			else
+			{
+				ti=touchInfo.get(idx);
+				//addError(String.format(loc, "TOUCH: lang pointer state=%d", ti.state));//DEBUG
+				if(ti.state==TouchInfo.S_UP)
+				{
+					int nLayouts=layoutInfo[INFO_IDX_LAYOUT_COUNT];
+					int choice=(int)(ti.x*nLayouts/w);
+					get_layout(choice, layoutHasExtension);
+					cursor_control=CC_DISABLED;
+				}
+			}
+		}
 		else if(size>0)//CURSOR CONTROL
 		{
 			if(cursor_control==CC_CURSOR)//listen to one pointer
