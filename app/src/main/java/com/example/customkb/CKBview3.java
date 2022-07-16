@@ -36,7 +36,7 @@ import java.util.TimerTask;
 public class CKBview3 extends ViewGroup
 {
 	//ModKey - keys not present in unicode
-	public static final int//should match ckb_mkeys.h
+	public static final int//should match ckb_mKeys.h
 		MODMASK=0x80000000,
 
 		KEY_NAB=0,
@@ -158,7 +158,8 @@ public class CKBview3 extends ViewGroup
 		{'q', 1, 'w', 1, 'e', 1, 'r', 1, 't', 1, 'y', 1, 'u', 1, 'i', 1, 'o', 1, 'p', 1},
 		{MODMASK|KEY_NAB, 1, 'a', 2, 's', 2, 'd', 2, 'f', 2, 'g', 2, 'h', 2, 'j', 2, 'k', 2, 'l', 2, MODMASK|KEY_NAB, 1},
 		{MODMASK|KEY_SHIFT, 3, 'z', 2, 'x', 2, 'c', 2, 'v', 2, 'b', 2, 'n', 2, 'm', 2, '\b', 3},
-		{MODMASK|KEY_SETTINGS, 6, MODMASK|KEY_NAB, 4, ' ', 20, MODMASK|KEY_NAB, 4, '\n', 6},
+	//	{MODMASK|KEY_SETTINGS, 6, MODMASK|KEY_NAB, 4, ' ', 20, MODMASK|KEY_NAB, 4, '\n', 6},
+		{MODMASK|KEY_NAB, 6, MODMASK|KEY_NAB, 4, ' ', 20, MODMASK|KEY_NAB, 4, '\n', 6},
 	//	{MODMASK|KEY_SETTINGS, 6, MODMASK|KEY_COPY, 4, MODMASK|KEY_PASTE, 4, ' ', 12, ',', 4, '.', 4, '\n', 6},
 	};
 	int[][] backup_layout_land_left=
@@ -179,7 +180,7 @@ public class CKBview3 extends ViewGroup
 	//dimensions
 	public static int
 		w, h,//screen dimensions
-		kb_y1, kb_h;//keyboard height: h = kb_y1 + kb_h		kb_y1 is UNUSED
+		kb_h;//keyboard height
 
 	//customkb
 	public static final int
@@ -691,7 +692,6 @@ public class CKBview3 extends ViewGroup
 		}
 
 		kb_h=CKBnativelib.getKbHeight();
-		kb_y1=h-kb_h;
 
 		set_kb_height(kb_h);
 		//ViewGroup.LayoutParams lp=getLayoutParams();
@@ -741,7 +741,6 @@ public class CKBview3 extends ViewGroup
 	/*	layout.clear();
 		layout.ensureCapacity(backup_layout_port.length);
 		kb_h=(int)(backup_height*h);
-		kb_y1=h-kb_h;
 		for(int k=0;k<backup_layout_port.length;++k)
 		{
 			int[] src=backup_layout_port[k], dst=new int[3+src.length];
@@ -1870,7 +1869,7 @@ public class CKBview3 extends ViewGroup
 
 	void set_possible_timers(TouchInfo.Pointer pointer, ButtonIdx button)
 	{
-		String label=getLabel(button.code);//
+		//String label=getLabel(button.code);//
 		//addError(String.format(loc, "set_possible_timers(%s)", label));//DEBUG
 		try
 		{
@@ -1936,7 +1935,7 @@ public class CKBview3 extends ViewGroup
 					SearchResult result=new SearchResult();
 					result.code=codes[k];
 					result.name=Character.getName(codes[k]);
-					char[] c=Character.toChars(codes[k]);
+					//char[] c=Character.toChars(codes[k]);
 					sb.appendCodePoint(codes[k]);
 					sb.append(String.format(loc, " (U+%X): %s", codes[k], result.name));
 					result.displayString=sb.toString();
