@@ -99,12 +99,12 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 	}
 	//deal with input starting within the input area of the IME.
 	//Called when the input view is being shown and input has started on a new editor.
-	@Override public void onStartInputView(EditorInfo info, boolean restarting)
+	@Override public void onStartInputView(EditorInfo info, boolean restarting)//restarting: same text field
 	{
 		if(myView!=null)
 		{
 			thread_id=Thread.currentThread().getId();
-			myView.startCKB(info);
+			myView.startCKB(info, restarting);
 		}
 		setExtractViewShown(false);
 	}
@@ -181,8 +181,31 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 						ExtractedText et=inCon.getExtractedText(new ExtractedTextRequest(), 0);
 						if(et!=null&&et.selectionStart==0&&et.selectionEnd==0)
 							break;
-						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_LEFT));
-						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_LEFT));
+						if(et==null)
+						{
+							success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_LEFT));
+							success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_LEFT));
+						}
+						else
+						{
+							int cursor=et.selectionStart;
+							if(et.selectionStart!=et.selectionEnd)
+							{
+								if(cursor>et.selectionEnd)
+									cursor=et.selectionEnd;
+								inCon.setSelection(cursor, cursor);
+							}
+							else
+							{
+								char c=et.text.charAt(cursor-1);
+								if((c&0xDC00)==0xDC00)//surrogate pair
+								//if(c>=0xD800&&c<=0xDFFF)//X  condition doesn't differentiate between first and second surrogate
+									cursor-=2;
+								else
+									--cursor;
+								inCon.setSelection(cursor, cursor);
+							}
+						}
 					}
 					break;
 				case CKBview3.MODMASK|CKBview3.KEY_RIGHT:
@@ -191,8 +214,31 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 						ExtractedText et=inCon.getExtractedText(new ExtractedTextRequest(), 0);
 						if(et!=null&&et.selectionStart==et.text.length()&&et.selectionEnd==et.text.length())
 							break;
-						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_RIGHT));
-						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_RIGHT));
+						if(et==null)
+						{
+							success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_RIGHT));
+							success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_RIGHT));
+						}
+						else
+						{
+							int cursor=et.selectionStart;
+							if(et.selectionStart!=et.selectionEnd)
+							{
+								if(cursor<et.selectionEnd)
+									cursor=et.selectionEnd;
+								inCon.setSelection(cursor, cursor);
+							}
+							else
+							{
+								char c=et.text.charAt(cursor);
+								if((c&0xD800)==0xD800)//surrogate pair
+								//if(c>=0xD800&&c<=0xDFFF)//X  condition doesn't differentiate between first and second surrogate
+									cursor+=2;
+								else
+									++cursor;
+								inCon.setSelection(cursor, cursor);
+							}
+						}
 					}
 					break;
 				case CKBview3.MODMASK|CKBview3.KEY_UP:

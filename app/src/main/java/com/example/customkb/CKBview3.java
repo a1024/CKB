@@ -339,7 +339,8 @@ public class CKBview3 extends ViewGroup
 
 	//timing
 	final int
-		turboStart_ms=600, turbo_ms=35,
+		turboStart_ms=800,//600
+		turbo_ms=35,
 		longPress_ms=400;
 	Timer timer=new Timer();
 	int timerOn=0;//0: off, 1: turboTask, 2: longPressTask
@@ -564,8 +565,8 @@ public class CKBview3 extends ViewGroup
 						button.x1=layout[idx];
 						button.code=layout[idx+1];
 						button.x2=layout[idx+2];
-						button.y1=(int)(y*layout[LAYOUT_IDX_HEIGHT_PX]/layout[LAYOUT_IDX_ROW_COUNT]);
-						button.y2=(int)((y+1)*layout[LAYOUT_IDX_HEIGHT_PX]/layout[LAYOUT_IDX_ROW_COUNT]);
+						button.y1=(int)(ky*layout[LAYOUT_IDX_HEIGHT_PX]/layout[LAYOUT_IDX_ROW_COUNT]);
+						button.y2=(int)((ky+1)*layout[LAYOUT_IDX_HEIGHT_PX]/layout[LAYOUT_IDX_ROW_COUNT]);
 						break;
 					}
 				}
@@ -891,7 +892,7 @@ public class CKBview3 extends ViewGroup
 			Log.e(TAG, "exception", e);
 		}
 	}
-	public void startCKB(EditorInfo info)//called in CKBservice.onStartInputView
+	public void startCKB(EditorInfo info, boolean restarting)//called in CKBservice.onStartInputView	TODO react to 'restarting'
 	{
 	/*	if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)//Character.getName()		FIXME this is a test, remove this
 		//if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)//UCharacter
@@ -990,7 +991,8 @@ public class CKBview3 extends ViewGroup
 			break;
 		}
 
-		layoutInfo=CKBnativelib.init(mode, numeric_signed||numeric_decimal?1:0, w, h);
+		if(!restarting&&layoutInfo==null)
+			layoutInfo=CKBnativelib.init(mode, numeric_signed||numeric_decimal?1:0, w, h);
 		//int nRows=CKBnativelib.init(mode, numeric_signed||numeric_decimal?1:0, w, h);
 		int nErrors=CKBnativelib.getNErrors();
 		//addError("init: "+nErrors+" errors");
@@ -1083,6 +1085,8 @@ public class CKBview3 extends ViewGroup
 			get_layout_backup();
 		}
 
+		mode_unicode=false;
+
 		ccGridX=ceilMultiple((int)(textSize*1.5), w);
 		ccGridY=layout[LAYOUT_IDX_HEIGHT_PX]/layout[LAYOUT_IDX_ROW_COUNT];
 
@@ -1122,7 +1126,7 @@ public class CKBview3 extends ViewGroup
 			int width=preview.getMeasuredWidth()+preview.getPaddingLeft()+preview.getPaddingRight(),
 				height=preview.getMeasuredHeight()+preview.getPaddingTop()+preview.getPaddingBottom();
 			//int width=x2-x1, height=y2-y1;
-			//if(y1<height)
+			//if(y1<height)//show preview on the side	X
 			//{
 			//	if(x1<w/2)
 			//		x1+=width;
@@ -1131,8 +1135,15 @@ public class CKBview3 extends ViewGroup
 			//}
 			//else
 				y1-=height;
+			if(w>h)//bugfix just for landscape
+				y1+=(h-kb_h)-(bIdx.y2-bIdx.y1);//y1 starts from screen top, add kb_y1 minus button height
+
 			//x1=(x1+x2)/2-width/2;
 			x1=clamp(0, (x1+x2-width)/2, w-width);
+
+			addError(String.format(loc, "Preview is on for button 0x%08X (%d~%d, %d~%d) (%d, %d) %dx%d",
+				bIdx.code, bIdx.x1, bIdx.x2, bIdx.y1, bIdx.y2, x1, y1, width, height));//DEBUG
+
 			if (previewPopup.isShowing())
 				previewPopup.update(x1, y1, width, height);
 			else
@@ -1153,6 +1164,7 @@ public class CKBview3 extends ViewGroup
 	{
 		previewPopup.dismiss();
 		preview.setVisibility(INVISIBLE);
+
 		//preview.setText("");
 	}
 
@@ -2281,7 +2293,8 @@ public class CKBview3 extends ViewGroup
 				if(ti!=null)
 				{
 					ButtonIdx
-						bIdx0=getButton_px(ti.prevx, ti.prevy),
+						bIdx0=getButton_px(ti.startx, ti.starty),
+					//	bIdx0=getButton_px(ti.prevx, ti.prevy),
 						bIdx=getButton_px(ti.x, ti.y);
 
 					//addError(String.format(loc, "TOUCH: normal, state=%d, code=0x%08X", ti.state, bIdx.code));//DEBUG
@@ -2333,15 +2346,20 @@ public class CKBview3 extends ViewGroup
 						break;
 					case TouchInfo.S_MOVED://normal keyboard
 						//tap_x=bIdx.kx; tap_y=bIdx.ky;
-						if(bIdx.ky!=bIdx0.ky||bIdx.kx!=bIdx0.kx)//turn on cursor control
+						if(bIdx0.code==' '&&(Math.abs(ti.x-ti.startx)>20||Math.abs(ti.y-ti.starty)>20))
+						{
+							cursor_control=CC_LANG;
+							touchId_switchLang=ti.id;
+							hideKeyPreview();
+							if(timerOn!=0)
+							{
+								timerOn=0;
+								timer.cancel();
+							}
+						}
+						else if(bIdx.ky!=bIdx0.ky||bIdx.kx!=bIdx0.kx)//turn on cursor control
 						{
 							tap_x=-1; tap_y=-1;
-							if(bIdx0.code==' ')
-							{
-								cursor_control=CC_LANG;
-								touchId_switchLang=ti.id;
-							}
-							else
 							{
 								if(isHeld_shift&&ti.id!=touchId_shift)
 								{
