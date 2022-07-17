@@ -9,7 +9,7 @@ public class CKBnativelib
 	//TODO unicode config to describe layouts with native characters
 
 	//ckb.c
-	public static native int[] init(int mode, int decnumpad, int width, int height);//returns {selected layoutIdx, nLayouts}, or nullptr
+	public static native int[] init(int mode, boolean decNumPad, int layoutIdxHint, int width, int height);//returns {selected layoutIdx, nLayouts}, or nullptr
 	public static native void finish();
 
 	public static native int[] getTheme();//check for null
@@ -36,6 +36,7 @@ public class CKBnativelib
 
 	public static native int getNErrors();
 	public static native String getError(int errorIdx);
+	public static native void clearErrors();
 
 
 	//unicode search

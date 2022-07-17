@@ -111,6 +111,14 @@ void		free_context(Context *ctx)
 	free_layout(&ctx->numPad);
 	array_free(&ctx->defaultLang, 0);
 }
+void 		free_error(void *data)
+{
+	ArrayHandle *str=(ArrayHandle*)data;
+#ifdef DEBUG_HEAP
+	LOG_ERROR("Freeing error string=%p...", *str);
+#endif
+	array_free(str, 0);
+}
 
 int 		glob_alloc()
 {
@@ -346,7 +354,7 @@ void		fillLayoutArray(ArrayHandle arr, ArrayHandle rows, int *rowIdx, int *start
 	}
 }
 
-EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_init(JNIEnv *env, jclass clazz, jint mode, jint decnumpad, jint width, jint height)
+EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_init(JNIEnv *env, jclass clazz, jint mode, jboolean decNumPad, jint layoutIdxHint, jint width, jint height)
 {
 	int ret;
 	ArrayHandle text;
@@ -355,7 +363,7 @@ EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_init
 	ret=glob_alloc();
 	if(ret)
 	{
-		glob->mode=(ModeType)mode;
+		//glob->mode=(ModeType)mode;
 		glob->w=width, glob->h=height;
 	}
 	if(ret==1)
@@ -406,15 +414,17 @@ EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_init
 		return 0;
 
 	//glob->prevLayoutIdx=glob->layoutIdx;
-	int layoutIdx=-10;//some illegal value
-	switch(glob->mode)
+	int layoutIdx=layoutIdxHint;
+	switch(mode)//should take hint only if it's not -10 and it has the same mode (text vs numeric)
 	{
 	//text modes
 	case MODE_TEXT:
 	case MODE_PASSWORD:
 	case MODE_URL:
 	case MODE_EMAIL:
-		layoutIdx=find_layout_idx(LAYOUT_LANG, glob->ctx.defaultLang);
+		if(layoutIdx<0)//replace numPad layouts that have indices {-2, -1}
+			layoutIdx=find_layout_idx(LAYOUT_LANG, glob->ctx.defaultLang);
+		//LOG_ERROR("TEXT LAYOUT IS CHOSEN, mode=%d, layoutIdx=%d", mode, layoutIdx);//DEBUG
 		break;
 
 	//case MODE_PASSWORD:
@@ -429,14 +439,20 @@ EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_init
 	case MODE_NUMBER:
 	case MODE_PHONE_NUMBER:
 	case MODE_NUMERIC_PASSWORD:
-		if(decnumpad)
-			layoutIdx=-2;
-		else
-			layoutIdx=-1;
-		//if(decnumpad)
+		//if(layoutIdx==-10||layoutIdx>=0)//illegal layout index, see CKBview3.java
+		{
+			if(decNumPad)
+				layoutIdx=-2;
+			else
+				layoutIdx=-1;
+		}
+		//if(decNumPad)
 		//	glob->layoutIdx=find_layout_idx(LAYOUT_DECNUMPAD, 0);
 		//else
 		//	glob->layoutIdx=find_layout_idx(LAYOUT_NUMPAD, 0);
+		break;
+	default:
+		LOG_ERROR("Unrecognized mode %d", mode);
 		break;
 	}
 	Layout *l2=get_layout(&glob->ctx, layoutIdx);
@@ -450,6 +466,8 @@ EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_init
 	//if(width<height)//portrait
 	//	return (int)l2->portrait->count;
 	//return (int)l2->landscape->count;
+
+	//LOG_ERROR("Mode=%d, selected %d/%d", mode, layoutIdx, (int)glob->ctx.layouts->count);//DEBUG
 
 	jResult=env[0]->NewIntArray(env, 2);
 	if(!jResult)
@@ -636,6 +654,10 @@ EXTERN_C JNIEXPORT jstring JNICALL Java_com_example_customkb_CKBnativelib_getErr
 		return 0;
 	ArrayHandle *error=(ArrayHandle*)array_at(&errors, errorIdx);
 	return env[0]->NewStringUTF(env, (char*)error[0]->data);
+}
+EXTERN_C JNIEXPORT void JNICALL Java_com_example_customkb_CKBnativelib_clearErrors(JNIEnv *env, jclass clazz)
+{
+	array_free(&errors, free_error);
 }
 
 

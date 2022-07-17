@@ -445,7 +445,7 @@ public class CKBsettings2 extends ViewGroup
 	public void get_theme_colors()
 	{
 		theme_colors=null;
-		int[] layoutInfo=CKBnativelib.init(0, 0, w, h);//parse config file
+		int[] layoutInfo=CKBnativelib.init(0, false, -10, w, h);//parse config file
 		int nErrors=CKBnativelib.getNErrors();
 		if(layoutInfo==null||nErrors>0)
 		{

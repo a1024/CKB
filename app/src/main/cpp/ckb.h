@@ -27,7 +27,7 @@ extern const char
 	*mcodes[];
 #define 	MODMASK		0x80000000//keys which are not in unicode have MSB set
 
-typedef enum ModeTypeEnum
+typedef enum ModeTypeEnum//consistent with labels in CKBview3.java
 {
 	//text modes			allow layout & language switch
 	MODE_TEXT,
@@ -97,7 +97,7 @@ typedef struct GlobalsStruct
 	int w, h;
 
 	Context ctx;
-	ModeType mode;
+	//ModeType mode;
 	//int layoutIdx;
 	//int prevLayoutIdx;
 } Globals;

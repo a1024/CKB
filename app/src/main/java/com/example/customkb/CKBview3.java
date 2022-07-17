@@ -201,7 +201,7 @@ public class CKBview3 extends ViewGroup
 		kb_h;//keyboard height
 
 	//customkb
-	public static final int
+	public static final int//consistent with enum ModeType in ckb.h
 		MODE_TEXT=0, MODE_PASSWORD=1, MODE_URL=2, MODE_EMAIL=3,//text modes
 		MODE_NUMBER=4, MODE_PHONE_NUMBER=5, MODE_NUMERIC_PASSWORD=6;//numeric modes
 	public int mode;
@@ -375,7 +375,7 @@ public class CKBview3 extends ViewGroup
 	//debug tools
 	public static final String TAG="customkb";
 	public static final boolean
-		DEBUG_ACCUMULATE=false,//was true
+		DEBUG_ACCUMULATE=true,//was true
 		DEBUG_TOUCH		=false,//works
 		DEBUG_CC		=false,//CC_DISABLED
 		DEBUG_STATE		=false,//just shift
@@ -592,6 +592,10 @@ public class CKBview3 extends ViewGroup
 		layoutInfo[INFO_IDX_SELECTED_IDX]=layoutIdx;
 		layout=nextLayout;
 		kb_h=layout[LAYOUT_IDX_HEIGHT_PX];
+
+		//for(int k=0;k<layout.length;++k)//FIXME DEBUG
+		//	addError(String.format(loc, "[%d]=%d", k, layout[k]));
+
 		set_kb_height(kb_h);
 		switch(layoutIdx)
 		{
@@ -626,6 +630,10 @@ public class CKBview3 extends ViewGroup
 		int nButtonsTotal=0;
 		for(int[] ints: backup_layout_port)
 			nButtonsTotal+=ints.length/2;
+
+		layoutInfo=new int[2];
+		//layoutInfo[INFO_IDX_SELECTED_IDX]=0;
+		layoutInfo[INFO_IDX_LAYOUT_COUNT]=1;
 
 		int arrCount=3+nRows*2+nButtonsTotal*2;
 		layout=new int[arrCount];
@@ -807,8 +815,15 @@ public class CKBview3 extends ViewGroup
 			break;
 		}
 
-		if(!restarting&&layoutInfo==null)
-			layoutInfo=CKBnativelib.init(mode, numeric_signed||numeric_decimal?1:0, w, h);
+		if(!restarting||layoutInfo==null)
+		{
+			boolean decimals=numeric_signed||numeric_decimal;
+			int hint=layoutInfo!=null?layoutInfo[INFO_IDX_SELECTED_IDX]:-10;//-10 is an illegal layout index, see ckb.c
+
+			//addError(String.format(loc, "CKBnative.init() is called, mode=%d, hint=%d, decimals=%d", mode, decimals?1:0, hint));//DEBUG
+
+			layoutInfo=CKBnativelib.init(mode, decimals, hint, w, h);
+		}
 		int nErrors=CKBnativelib.getNErrors();
 		//addError("init: "+nErrors+" errors");
 		if(layoutInfo==null||nErrors>0)
@@ -821,6 +836,7 @@ public class CKBview3 extends ViewGroup
 				addError(err);
 				urgentMsg.add(err);
 			}
+			CKBnativelib.clearErrors();
 		}
 		theme_colors=CKBnativelib.getTheme();
 		boolean theme_invalid=true;
@@ -878,6 +894,9 @@ public class CKBview3 extends ViewGroup
 					layoutNames.add(name);
 			}
 			switch_layout(layoutInfo[INFO_IDX_SELECTED_IDX], layoutHasExtension);
+
+			//addError(String.format(loc, "Selecting layout %d/%d, extension=%d, layout size=%d",
+			//	layoutInfo[INFO_IDX_SELECTED_IDX], layoutInfo[INFO_IDX_LAYOUT_COUNT], layoutHasExtension?1:0, layout.length));//DEBUG
 		}
 
 		if(layout==null)
@@ -890,7 +909,13 @@ public class CKBview3 extends ViewGroup
 		mode_unicode=false;
 
 		ccGridX=ceilMultiple((int)(textSize*1.5), w);
-		ccGridY=layout[LAYOUT_IDX_HEIGHT_PX]/layout[LAYOUT_IDX_ROW_COUNT];
+		if(layout[LAYOUT_IDX_ROW_COUNT]==0)
+		{
+			addError("Layout count == 0");
+			ccGridY=kb_h/5;
+		}
+		else
+			ccGridY=layout[LAYOUT_IDX_HEIGHT_PX]/layout[LAYOUT_IDX_ROW_COUNT];
 
 		invalidate();
 	}
@@ -934,8 +959,8 @@ public class CKBview3 extends ViewGroup
 			//x1=(x1+x2)/2-width/2;
 			x1=clamp(0, (x1+x2-width)/2, w-width);
 
-			addError(String.format(loc, "Preview is on for button 0x%08X (%d~%d, %d~%d) (%d, %d) %dx%d",
-				bIdx.code, bIdx.x1, bIdx.x2, bIdx.y1, bIdx.y2, x1, y1, width, height));//DEBUG
+			//addError(String.format(loc, "Preview is on for button 0x%08X (%d~%d, %d~%d) (%d, %d) %dx%d",
+			//	bIdx.code, bIdx.x1, bIdx.x2, bIdx.y1, bIdx.y2, x1, y1, width, height));//DEBUG
 
 			if (previewPopup.isShowing())
 				previewPopup.update(x1, y1, width, height);
@@ -1370,10 +1395,9 @@ public class CKBview3 extends ViewGroup
 			penPaint.setColor(color);
 		}//*/
 
-		int xPos=w/4;//when logcat isn't enough
-		int py=0;
-		for(int ky=0;ky<urgentMsg.size();++ky)
-			py+=drawText_wrap(urgentMsg.get(ky), xPos, w, py, canvas);
+		int xPos=w/4, py=0;//when logcat isn't enough
+		for(int ky=0;ky<urgentMsg.size();++ky)//print urgent D E B U G messages on keyboard
+			py+=drawText_wrap(urgentMsg.get(urgentMsg.size()-1-ky), xPos, w, py, canvas);//newest-first
 	}
 
 	//timing

@@ -711,7 +711,7 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 				return parse_error(text, k, "Landscape declaration appeared before");
 			}
 
-			if(layout==&ctx->symbolsExtension)
+			if(layout->type==LAYOUT_SYMBOLS_EXTENSION)		//parse layout relative height
 				*layout_height=0.5f;
 			else
 			{
@@ -726,7 +726,10 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 				}
 			}
 
-			if(skip_ws(text, text_len, &k)||text[k]!='{')
+			//if(layout->type==LAYOUT_NUMPAD||layout->type==LAYOUT_DECNUMPAD)//FIXME DEBUG
+			//	LOG_ERROR("%s h=%f%%", layout->type==LAYOUT_NUMPAD?"numPad":"decNumPad", 100.f**layout_height);
+
+			if(skip_ws(text, text_len, &k)||text[k]!='{')		//layout declaration
 				return parse_error(text, k, "Expected layout definition");
 			++k;//skip '{'
 			if(skip_ws(text, text_len, &k))
@@ -821,7 +824,7 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 	return found_lang;
 }
 
-static int	calc_raster_sizes_rows(ArrayHandle rows, int width, int height, float kb_percent)
+static int	calc_raster_sizes_rows(ArrayHandle rows, int width, int height, float kb_percent, int *ret_rasterHeight)
 {
 	int nRows, nButtons, kb_height;
 	Row *row;
@@ -853,6 +856,8 @@ static int	calc_raster_sizes_rows(ArrayHandle rows, int width, int height, float
 			x1=x2;
 		}
 	}
+	if(ret_rasterHeight)
+		*ret_rasterHeight=(int)((float)height*kb_percent);
 	return 1;
 }
 int 		calc_raster_sizes(Context *ctx, int width, int height, int is_landscape)
@@ -866,15 +871,18 @@ int 		calc_raster_sizes(Context *ctx, int width, int height, int is_landscape)
 	for(int kl=0;kl<(int)ctx->layouts->count;++kl)//for each layout
 	{
 		Layout *layout=(Layout*)array_at(&ctx->layouts, kl);
-		ret&=calc_raster_sizes_rows(layout->portrait, width, height, layout->p_percent);
-		ret&=calc_raster_sizes_rows(layout->landscape, height, width, layout->l_percent);
-		if(ret)
-		{
-			layout->p_height=(int)((float)height*layout->p_percent);
-			layout->l_height=(int)((float)width*layout->l_percent);
-		}
+		ret&=calc_raster_sizes_rows(layout->portrait, width, height, layout->p_percent, &layout->p_height);
+		ret&=calc_raster_sizes_rows(layout->landscape, height, width, layout->l_percent, &layout->l_height);
 	}
-	ret&=calc_raster_sizes_rows(ctx->symbolsExtension.portrait, width, height, 0.5f);//height percentage is irrelevant here because the extension rows have same height as layout rows
-	ret&=calc_raster_sizes_rows(ctx->symbolsExtension.landscape, height, width, 0.5f);
+
+	//height percentage is irrelevant here because the extension rows have same height as layout rows
+	ret&=calc_raster_sizes_rows(ctx->symbolsExtension.portrait, width, height, 0.5f, 0);
+	ret&=calc_raster_sizes_rows(ctx->symbolsExtension.landscape, height, width, 0.5f, 0);
+
+	ret&=calc_raster_sizes_rows(ctx->numPad.portrait, width, height, ctx->numPad.p_percent, &ctx->numPad.p_height);
+	ret&=calc_raster_sizes_rows(ctx->numPad.landscape, height, width, ctx->numPad.l_percent, &ctx->numPad.l_height);
+
+	ret&=calc_raster_sizes_rows(ctx->decNumPad.portrait, width, height, ctx->decNumPad.p_percent, &ctx->decNumPad.p_height);
+	ret&=calc_raster_sizes_rows(ctx->decNumPad.landscape, height, width, ctx->decNumPad.l_percent, &ctx->decNumPad.l_height);
 	return ret;
 }
