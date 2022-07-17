@@ -1,3 +1,19 @@
+/*  CKBview3.java - The 3rd version of the customizable keyboard main view
+    Copyright (C) 2021 Ayman Wagih, unless source link provided
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+    */
 package com.example.customkb;
 
 import android.content.Context;
@@ -36,10 +52,12 @@ import java.util.TimerTask;
 public class CKBview3 extends ViewGroup
 {
 	//ModKey - keys not present in unicode
-	public static final int//should match ckb_mKeys.h
+	public static final int
 		MODMASK=0x80000000,
 
-		KEY_NAB=0,
+		//these constants correspond to ckb_mKeys.h
+		//make sure that the labels are consequent when modifying this list
+		KEY_NAB=0,//not a button
 
 		KEY_SYMBOLS=1,
 		KEY_SETTINGS=2,
@@ -210,7 +228,6 @@ public class CKBview3 extends ViewGroup
 	{
 		int code;
 		String name, displayString;
-		//TextView tv;
 	}
 	StringBuilder uniSearch_query=new StringBuilder();
 	float uniSearch_wpy=0;//window (scroll) position y, set by unicodeSearch & onTouch.scroll
@@ -234,22 +251,6 @@ public class CKBview3 extends ViewGroup
 		UNI_SEARCH_DRAG_SCROLL=1;
 		//UNI_SEARCH_DRAG_CC=2;
 	int uniSearch_drag=UNI_SEARCH_DRAG_NONE;
-	//final ArrayList<TextView> uniSearch_resultViews=new ArrayList<>();
-	//PointF uniSearch_scrollStart=new PointF();
-
-//	int[] uniSearch_GUIParams=new int[];
-/*	static class UniSearchParams
-	{
-		int kb_h;//total pixel height, overrides the global CKBview3.kb_h
-
-		//nLinesTotal = nLinesLayout + 1 (searchbar) + nLinesResult
-		int nLinesLayout,	//backup_layout_port.length
-			nLinesResult;	//1 ~ nLinesResultMax
-		//	nLinesResultMax;// == nLinesLayout
-
-		int nResults;
-		int wpy;//window position y
-	}//*/
 
 	//cursor control:
 	//{(MSB) switch_language, start, end, shift (LSB)}
@@ -262,13 +263,13 @@ public class CKBview3 extends ViewGroup
 	//1000	CC_LANG
 	public static final int
 		CC_DISABLED=0,
-		CC_SEL_READY=1,//touchId_shift
-		CC_SEL_END=3,//[touchId_shift,] touchId_end
+		CC_SEL_READY=1,		//touchId_shift
+		CC_SEL_END=3,		//[touchId_shift,] touchId_end
 		CC_SEL_END_MASK=2,
-		CC_SEL_START=5,//[touchId_shift,] touchId_start
+		CC_SEL_START=5,		//[touchId_shift,] touchId_start
 		CC_SEL_START_MASK=4,
-		CC_SEL_BOTH=7,//[touchId_shift,] touchId_start & touchId_end
-		CC_CURSOR=6,//touchId_start
+		CC_SEL_BOTH=7,		//[touchId_shift,] touchId_start & touchId_end
+		CC_CURSOR=6,		//touchId_start
 		CC_LANG=8;
 	public int cursor_control=CC_DISABLED;
 	public boolean isHeld_shift=false;//finger holds shift, needed to initiate selection control
@@ -326,10 +327,9 @@ public class CKBview3 extends ViewGroup
 	public static final int
 		LAYOUT_IDX_ROW_COUNT=0,
 		LAYOUT_IDX_HEIGHT_PX=1;
-	int[] layout=null;
+	int[] layout=null;//see CKBnativelib.java
 	ArrayList<String> layoutNames=new ArrayList<>();
 	boolean layoutHasExtension=false;//symbols extension		should be on at the start in case mode == MODE_PASSWORD, MODE_URL, or MODE_EMAIL
-	//final ArrayList<int[]> layout=new ArrayList<>();
 	int tap_x=-1, tap_y=-1;//layout coordinates of currently held button
 	int ccGridX, ccGridY;
 	int quickMode=0;
@@ -359,34 +359,6 @@ public class CKBview3 extends ViewGroup
 		LongPressTask(int _code){code=_code;}
 		@Override public void run()//this is run when the period is expired
 		{
-			//addError("LongPressTask.run()");//DEBUG
-		/*	switch(code)
-			{
-			case MODMASK|KEY_SHIFT://long press shift: turn on caps lock
-				service.onKeyCallback(code, 1);
-				isActive_shift=true;
-				service.onKeyCallback(MODMASK|KEY_SHIFT, 1);
-				quickMode=0;
-				break;
-
-			case MODMASK|KEY_LAYOUT_PREV://long press l a y o u t: switch language
-				service.onKeyCallback(code, 1);
-				pend_switch=1;
-				postInvalidate();
-				//switchLanguage();//CRASH timer thread can't set LayoutParams
-				break;
-
-			case MODMASK|KEY_LAYOUT_NEXT://long press l a y o u t: switch language
-				service.onKeyCallback(code, 1);
-				pend_switch=2;
-				postInvalidate();
-				break;
-
-			//case MODMASK|KEY_SETTINGS://long press settings: toggle unicode mode
-			//	pend_switch=3;
-			//	postInvalidate();
-			//	break;
-			}//*/
 			if(code==(MODMASK|KEY_SHIFT))
 			{
 				service.onKeyCallback(code, 1);
@@ -397,7 +369,7 @@ public class CKBview3 extends ViewGroup
 			done=true;
 		}
 	}
-	TurboTask turboTask=new TurboTask(MODMASK|KEY_NAB);//TODO: check if initialization needed, probably not
+	TurboTask turboTask=new TurboTask(MODMASK|KEY_NAB);//TODO: check if initialization needed (probably not)
 	LongPressTask longPressTask=new LongPressTask(MODMASK|KEY_NAB);
 
 	//debug tools
@@ -422,7 +394,6 @@ public class CKBview3 extends ViewGroup
 	@Override protected void onLayout(boolean changed, int l, int t, int r, int b){}
 
 	//util
-	//public static boolean isPortrait(){return w<h;}
 	static boolean mask(int x, int m){return (x&m)==m;}
 	static int clamp(int lo, int x, int hi)
 	{
@@ -462,8 +433,6 @@ public class CKBview3 extends ViewGroup
 			code&=~MODMASK;
 			if(code>=mKeys.length)
 				return "INVALID";
-			//if(code==KEY_LAYOUT)
-			//	return layoutName;
 			ModKey key=mKeys[code];
 			return key.label;
 		}
@@ -504,10 +473,9 @@ public class CKBview3 extends ViewGroup
 		case ' ':	return layoutName;
 		case 127:	return "Del";
 		}
-		StringBuilder b=new StringBuilder();
+		StringBuilder b=new StringBuilder();//don't use String.format() with unicode
 		b.appendCodePoint(code);
 		return b.toString();
-		//return String.format(loc, "%c", code);
 	}
 	public ButtonIdx getButton_layout(int tap_x, int tap_y)
 	{
@@ -528,18 +496,6 @@ public class CKBview3 extends ViewGroup
 				button.x2=layout[idx+2];
 			}
 		}
-	/*	if(tap_y>=0&&tap_y<layout.size())
-		{
-			int[] row=layout.get(tap_y);
-			button.kx=tap_x;
-			button.ky=tap_y;
-			button.y1=row[0];
-			button.y2=row[1];
-			int idx=3+tap_x*2;
-			button.x1=row[idx-1];
-			button.code=row[idx];
-			button.x2=row[idx+1];
-		}//*/
 		return button;
 	}
 	public ButtonIdx getButton_px(float x, float y)//linear search,  assumes layout is fullscreen {0~w, 0~kb_h}
@@ -572,29 +528,6 @@ public class CKBview3 extends ViewGroup
 				}
 			}
 		}
-	/*	for(int ky=0, nRows=layout.size();ky<nRows;++ky)
-		{
-			int[] row=layout.get(ky);
-			int y1=row[0], y2=row[1];
-			if(y>=y1&&y<y2)
-			{
-				for(int kx=3;kx+1<row.length;kx+=2)
-				{
-					int x1=row[kx-1], x2=row[kx+1];
-					if(x>=x1&&x<x2)
-					{
-						button.ky=ky;
-						button.kx=(kx-3)/2;
-						button.code=row[kx];
-						button.x1=x1;
-						button.x2=x2;
-						button.y1=y1;
-						button.y2=y2;
-						return button;
-					}
-				}
-			}
-		}//*/
 		return button;
 	}
 	public ButtonIdx getButton_px_static(int[][] layout, int x1, int x2, int y1, int y2, float x, float y)
@@ -681,32 +614,11 @@ public class CKBview3 extends ViewGroup
 			}
 			break;
 		}
-
-	/*	layout.clear();
-		layout.ensureCapacity(nRows);
-		for(int k=0;k<nRows;++k)
-		{
-			int[] row=CKBnativelib.getRow(k);
-			if(row==null)
-				addError(String.format(loc, "Java: Row %d == null", k));
-			else
-				layout.add(row);
-		}
-
-		kb_h=CKBnativelib.getKbHeight();
-
-		set_kb_height(kb_h);
-		//ViewGroup.LayoutParams lp=getLayoutParams();
-		//lp.height=kb_h;
-		//setLayoutParams(lp);
-
-		layoutName=CKBnativelib.getLayoutName();//*/
 	}
 	public void toggleSymbolsExtension()
 	{
 		layoutHasExtension=!layoutHasExtension;
 		switch_layout(layoutInfo[INFO_IDX_SELECTED_IDX], layoutHasExtension);
-		//invalidate();
 	}
 	private void get_layout_backup()
 	{
@@ -739,56 +651,9 @@ public class CKBview3 extends ViewGroup
 				layout[rowStartIdx+kb*2+2]=x*w/relativeWidth;	//x2
 			}
 		}
-
-	/*	layout.clear();
-		layout.ensureCapacity(backup_layout_port.length);
-		kb_h=(int)(backup_height*h);
-		for(int k=0;k<backup_layout_port.length;++k)
-		{
-			int[] src=backup_layout_port[k], dst=new int[3+src.length];
-			dst[0]=k*kb_h/backup_layout_port.length;
-			dst[1]=(k+1)*kb_h/backup_layout_port.length;
-			dst[2]=0;
-			float gain=0;
-			for(int k2=0;k2<src.length;k2+=2)
-				gain+=src[k2+1];
-			gain=w/gain;
-			int x1=0;
-			for(int k2=0;k2<src.length;k2+=2)
-			{
-				x1+=src[k2+1];
-				dst[3+k2]=src[k2];
-				dst[3+k2+1]=(int)(x1*gain);
-			}
-			layout.add(dst);
-		}
-		//if(setKbHeight)
-		set_kb_height(kb_h);//*/
 	}
-/*	public void switchLayout()
-	{
-		int nRows=CKBnativelib.nextLayout();
-		if(nRows<1)
-		{
-			addError("Failed to switch layout");
-			return;
-		}
-		switch_layout(nRows);
-	}
-	public void switchLanguage()
-	{
-		int nRows=CKBnativelib.nextLanguage();
-		if(nRows<1)
-		{
-			addError("Failed to switch language");
-			return;
-		}
-		switch_layout(nRows);
-	}//*/
 	public void toggleUnicode()
 	{
-		//addError("toggleUnicode()");//DEBUG
-
 		if(ENABLE_UNICODE_SEARCH)
 			mode_unicode=!mode_unicode;
 		else
@@ -797,27 +662,9 @@ public class CKBview3 extends ViewGroup
 		{
 			uniSearch_setRowHeight();
 			uniSearch_updateResults();
-
-			//get_layout_backup(false);
-			//kb_h=(int)(0.6*h);
-			//set_kb_height(kb_h);
 		}
 		else if(layout!=null)//turn off unicode
 			set_kb_height(layout[LAYOUT_IDX_HEIGHT_PX]);
-
-
-		//else turn off unicode, apparently nothing is needed to be done, because unicode search doesn't use int[] layout
-
-		//else//turn off unicode
-		//{
-		//	int nRows=CKBnativelib.currentLayout();
-		//	if(nRows<1)
-		//	{
-		//		addError("Failed to switch layout");
-		//		return;
-		//	}
-		//	switch_layout(nRows);
-		//}
 	}
 	public boolean uniSearch_isScrollable()
 	{
@@ -839,13 +686,12 @@ public class CKBview3 extends ViewGroup
 			w=metrics.widthPixels; h=metrics.heightPixels;
 
 			int minDim=Math.min(w, h);
-			textSize=minDim/20.f;//33.75.f
+			textSize=minDim/18.f;//33.75f	20.f
 			textSize_long=minDim/40.f;
 
 			textPaint=new Paint();
 			textPaint.setAntiAlias(true);
 			textPaint.setTextAlign(Paint.Align.CENTER);
-			//textPaint.setColor(color_labels);
 			letterPaint=new Paint(textPaint);
 			specialButtonPaint=new Paint(textPaint);
 
@@ -857,12 +703,8 @@ public class CKBview3 extends ViewGroup
 			penPaint.setStrokeWidth(3);
 
 			buttonPaint=new Paint();
-			//buttonPaint.setColor(color_button);
 
 			shadowOffset=minDim/270.f;
-			//textPaint			.setShadowLayer(shadowOffset*0.5f, shadowOffset, shadowOffset, color_shadow);//0xAARRGGBB
-			//letterPaint			.setShadowLayer(shadowOffset*0.5f, shadowOffset, shadowOffset, color_shadow_letters);
-			//specialButtonPaint	.setShadowLayer(shadowOffset*0.5f, shadowOffset, shadowOffset, color_shadow_special);
 
 			wrapPaint=new TextPaint();
 			wrapPaint.setTextSize(16*getResources().getDisplayMetrics().density);
@@ -876,10 +718,6 @@ public class CKBview3 extends ViewGroup
 
 			preview.setGravity(Gravity.CENTER);
 			preview.setTextSize(textSize/2);
-			//preview.setTextColor(color_preview_text);
-
-			//Drawable bk=DrawableCompat.wrap(preview.getBackground()).mutate();
-			//DrawableCompat.setTint(bk, color_button_pressed);//change preview bkColor
 
 			previewPopup=new PopupWindow(service.getApplication());
 			previewPopup.setContentView(preview);
@@ -894,28 +732,6 @@ public class CKBview3 extends ViewGroup
 	}
 	public void startCKB(EditorInfo info, boolean restarting)//called in CKBservice.onStartInputView	TODO react to 'restarting'
 	{
-	/*	if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)//Character.getName()		FIXME this is a test, remove this
-		//if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)//UCharacter
-		{
-			String query="joy";
-			int[] codes=CKBnativelib.searchUnicode(query);
-			//int code=UCharacter.getCharFromName(query);
-			if(codes==null)
-				addError(String.format("unicodeSearch(): No results for '%s'", query));
-			else
-			{
-				try
-				{
-					for(int k=0;k<codes.length;k+=2)
-						addError(String.format(loc, "unicodeSearch(%s): r=%d, 0x%08X, %s", query, codes[k+1], codes[k], Character.getName(codes[k])));
-				}
-				catch(IllegalArgumentException e)
-				{
-					addError(String.format(loc, "unicodeSearch(%s): %s", query, e.getMessage()));
-				}
-			}
-		}//*/
-
 		if(DEBUG_MODE)
 			Log.e(TAG, String.format(loc, "inputType = 0x%08X", info.inputType));
 		switch(info.inputType&InputType.TYPE_MASK_CLASS)
@@ -993,14 +809,18 @@ public class CKBview3 extends ViewGroup
 
 		if(!restarting&&layoutInfo==null)
 			layoutInfo=CKBnativelib.init(mode, numeric_signed||numeric_decimal?1:0, w, h);
-		//int nRows=CKBnativelib.init(mode, numeric_signed||numeric_decimal?1:0, w, h);
 		int nErrors=CKBnativelib.getNErrors();
 		//addError("init: "+nErrors+" errors");
 		if(layoutInfo==null||nErrors>0)
 		{
 			service.displayToast(CKBnativelib.getError(0));//toast just the first error for now
+			urgentMsg.clear();
 			for(int ke=0;ke<nErrors;++ke)
-				addError(CKBnativelib.getError(ke));
+			{
+				String err=CKBnativelib.getError(ke);
+				addError(err);
+				urgentMsg.add(err);
+			}
 		}
 		theme_colors=CKBnativelib.getTheme();
 		boolean theme_invalid=true;
@@ -1013,9 +833,6 @@ public class CKBview3 extends ViewGroup
 		{
 			Log.e(TAG, "Theme is invalid, fallback to backup theme");
 			theme_colors=backup_theme;
-			//theme_colors=new int[THEME_COLOR_COUNT];
-			//for(int k=0;k<THEME_COLOR_COUNT;++k)
-			//	theme_colors[k]=(int)(255*Math.random())<<24|(int)(255*Math.random())<<16|(int)(255*Math.random())<<8|(int)(255*Math.random());
 		}
 		if(DEBUG_COLORS)
 		{
@@ -1049,7 +866,6 @@ public class CKBview3 extends ViewGroup
 		else
 		{
 			int nLayouts=layoutInfo[INFO_IDX_LAYOUT_COUNT];
-			//boolean broken=false;
 			for(int kl=0;kl<nLayouts;++kl)//only 'lang' layouts
 			{
 				String name=CKBnativelib.getLayoutName(kl);
@@ -1057,25 +873,11 @@ public class CKBview3 extends ViewGroup
 				{
 					addError(String.format(loc, "Error retrieving name of layout %d, nLayouts=%d", kl, nLayouts));
 					layoutNames.add("Error");
-
-					//broken=true;
-					//break;
 				}
 				else
 					layoutNames.add(name);
 			}
-			//if(broken)
-			//{
-			//	addError("Error retrieving layout names");
-			//	layoutNames=null;
-			//}
 			switch_layout(layoutInfo[INFO_IDX_SELECTED_IDX], layoutHasExtension);
-			//if(layout!=null)//DEBUG
-			//{
-			//	addError("Received:");
-			//	for(int k=0;k<layout.length;++k)
-			//		addError(String.format(loc, "layout[%d]=%d", k, layout[k]));
-			//}
 		}
 
 		if(layout==null)
@@ -1090,16 +892,7 @@ public class CKBview3 extends ViewGroup
 		ccGridX=ceilMultiple((int)(textSize*1.5), w);
 		ccGridY=layout[LAYOUT_IDX_HEIGHT_PX]/layout[LAYOUT_IDX_ROW_COUNT];
 
-		//set_kb_height(kb_h);//switch_layout sets kb_h
 		invalidate();
-
-		//if(nRows==0)//open settings in case of error		X  backup layout has a settings button
-		//{
-		//	//service.displayToast("Failed to initialize keyboard, opening settings");
-		//	Intent intent=new Intent(service, CKBactivity.class);
-		//	intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-		//	service.startActivity(intent);
-		//}
 	}
 
 	//GUI
@@ -1164,8 +957,6 @@ public class CKBview3 extends ViewGroup
 	{
 		previewPopup.dismiss();
 		preview.setVisibility(INVISIBLE);
-
-		//preview.setText("");
 	}
 
 	//drawing functions
@@ -1201,20 +992,12 @@ public class CKBview3 extends ViewGroup
 			{
 				for(int kx=x1;kx<x2;kx+=ccGridX)
 					drawRoundRect(kx+radius, kx+ccGridX-radius, ky+radius, ky+ccGridY-radius, radius, buttonPaint, canvas);
-				//{
-				//	rectf.set(kx+radius, ky+radius, kx+ccGridX-radius, ky+ccGridY-radius);
-				//	canvas.drawRoundRect(rectf, radius, radius, buttonPaint);
-				//}
 			}
 		}
 		else
 		{
 			for(int kx=x1;kx<x2;kx+=ccGridX)
 				drawRoundRect(kx+radius, kx+ccGridX-radius, radius, kb_h-radius, radius, buttonPaint, canvas);
-			//{
-			//	rectf.set(kx+radius, radius, kx+ccGridX-radius, kb_h-radius);
-			//	canvas.drawRoundRect(rectf, radius, radius, buttonPaint);
-			//}
 		}
 	}
 	void draw_kb_button(int x1, int x2, int y1, int y2, int kx, int ky, int code, float radius, Canvas canvas)
@@ -1231,12 +1014,12 @@ public class CKBview3 extends ViewGroup
 		{
 			switch(code&~MODMASK)//check long-pressable keys
 			{
-		//	case KEY_LAYOUT:if(isActive_layout){colorWasSet=true; color2=theme_colors[COLOR_BUTTON_PRESSED];}	break;
-			case KEY_CTRL:	if(isActive_ctrl){	colorWasSet=true; color2=theme_colors[COLOR_BUTTON_PRESSED];}	break;
-			case KEY_ALT:	if(isActive_alt){	colorWasSet=true; color2=theme_colors[COLOR_BUTTON_PRESSED];}	break;
+			case KEY_SYMBOLS:	if(layoutHasExtension){	colorWasSet=true; color2=theme_colors[COLOR_BUTTON_PRESSED];}	break;
+			case KEY_CTRL:		if(isActive_ctrl){		colorWasSet=true; color2=theme_colors[COLOR_BUTTON_PRESSED];}	break;
+			case KEY_ALT:		if(isActive_alt){		colorWasSet=true; color2=theme_colors[COLOR_BUTTON_PRESSED];}	break;
 
 			case KEY_CAPSLOCK:
-			case KEY_SHIFT:	if(isActive_shift){	colorWasSet=true; color2=theme_colors[COLOR_BUTTON_PRESSED];}	break;
+			case KEY_SHIFT:		if(isActive_shift){		colorWasSet=true; color2=theme_colors[COLOR_BUTTON_PRESSED];}	break;
 			}
 		}
 		if(!colorWasSet&&quickMode==1)
@@ -1251,39 +1034,20 @@ public class CKBview3 extends ViewGroup
 		}
 		if(colorWasSet)
 			buttonPaint.setColor(color2);
-		//if(DEBUG_STATE)//FIXME remove this
-		//{
-		//	if(code==(MODMASK|KEY_SHIFT)&&tap_y!=-1&&tap_x!=-1)
-		//	{
-		//		int[] row2=layout.get(tap_y);
-		//		int temp_idx=3+tap_x*2, x1_b=row2[temp_idx-1], code_b=row2[temp_idx], x2_b=row2[temp_idx+1];
-		//		if(code_b==(MODMASK|KEY_NAB))
-		//			Log.e(TAG, String.format(loc, "%d  c1=0x%08X, c2=0x%08X, tap(%d, %d)", frame_counter, color, color2, tap_x, tap_y));
-		//		else
-		//		{
-		//			String label2=getLabel(code_b);
-		//			Log.e(TAG, String.format(loc, "%d  c1=0x%08X, c2=0x%08X, tap(%d, %d): %s", frame_counter, color, color2, tap_x, tap_y, label2));
-		//		}
-		//	}
-		//}
 		drawRoundRect(radius, dx-radius, radius, dy-radius, radius, buttonPaint, canvas);
-		//rectf.set(radius, radius, dx-radius, dy-radius);
-		//canvas.drawRoundRect(rectf, radius, radius, buttonPaint);
 		if(colorWasSet)
 			buttonPaint.setColor(color);
 
 		float currentSize;
 		Paint p=null;
 		int code_case=code;
-		if((code&MODMASK)!=0)//
+		if((code&MODMASK)!=0)
 			p=specialButtonPaint;
 		else if(isActive_shift)
 			code_case=Character.toUpperCase(code);
 		else
 			code_case=Character.toLowerCase(code);
 		String label=getLabel(code_case);
-
-		//addError(String.format(loc, "drawing %s", label));//DEBUG
 
 		if(label.length()>1)
 		{
@@ -1355,9 +1119,6 @@ public class CKBview3 extends ViewGroup
 		if(!centerX)
 			x+=rect.exactCenterX();
 
-		//addError(String.format(loc, "PRINTING %s", text));//DEBUG-3
-		//addError(String.format(loc, "y0 %f centerY %d exactCenterY %f, height %d", y, centerY?1:0, rect.exactCenterY(), rect.height()));
-
 		if(!centerY)
 			y+=rect.height();
 		canvas.drawText(text, x, y, paint);
@@ -1367,7 +1128,7 @@ public class CKBview3 extends ViewGroup
 	{
 		if(android.os.Build.VERSION.SDK_INT>=android.os.Build.VERSION_CODES.M)//multiline text
 		{
-			StaticLayout.Builder builder=StaticLayout.Builder.obtain(text, 0, text.length(), wrapPaint, x2-x1);//DOESN'T SUPPORT MULTI-CHARACTER CODEPOINTS
+			StaticLayout.Builder builder=StaticLayout.Builder.obtain(text, 0, text.length(), wrapPaint, x2-x1);
 			StaticLayout sl=builder.build();
 			int textHeight=sl.getHeight(), py=y+textHeight;
 			canvas.translate(x1, py);
@@ -1391,13 +1152,8 @@ public class CKBview3 extends ViewGroup
 				SearchResult result=uniSearch_results.get(k);
 
 				buttonPaint.setColor((k&1)!=0?0xC0A0A0A0:0xC0D0D0D0);//alternating shades
-				//buttonPaint.setColor(0xC0C0C0C0);
 				drawRoundRect((float)x1+r2, (float)x2-r2, ya+r2, yb-r2, radius, buttonPaint, canvas);
-				//rectf.set((float)x1+r2, ya+r2, (float)x2-r2, yb-r2);
-				//canvas.drawRoundRect(rectf, radius, radius, buttonPaint);
 
-				//drawText_wrap(result.displayString, x1+radius, x2-radius, (int)((ya+yb)*0.5f), canvas);
-				//drawText_wrap(result.displayString, x1+radius, x2-radius, (int)ya, canvas);
 				drawText_byTopLeft(result.displayString, x1+radius, (ya+yb)*0.5f, false, true, textPaint, canvas);
 
 				ya=yb;
@@ -1407,8 +1163,6 @@ public class CKBview3 extends ViewGroup
 		{
 			buttonPaint.setColor(0xC0A0A0A0);
 			drawRoundRect(x1+r2, x2-r2, y1+r2, y2-r2, radius, buttonPaint, canvas);
-			//rectf.set(x1+r2, y1+r2, x2-r2, y2-r2);
-			//canvas.drawRoundRect(rectf, radius, radius, buttonPaint);
 
 			drawText_byTopLeft("(no results)", (x1+x2)*0.5f, (y1+y2)*0.5f, true, true, textPaint, canvas);
 		}
@@ -1416,38 +1170,19 @@ public class CKBview3 extends ViewGroup
 	}
 	@Override public void onDraw(Canvas canvas)
 	{
-	/*	if(pend_switch!=0)
-		{
-			if(pend_switch==1)
-				switchLayout();
-			else if(pend_switch==2)
-				switchLanguage();
-			//else if(pend_switch==3)
-			//	toggleUnicode();
-			pend_switch=0;
-		}//*/
 		float radius=10;
-
-		//addError(String.format(loc, "mode_unicode=%d, cursor_control=%d", mode_unicode?1:0, cursor_control));//DEBUG
-		//if(layoutInfo!=null)
-		//	addError(String.format(loc, "layoutIdx=%d, nLayouts=%d", layoutInfo[INFO_IDX_SELECTED_IDX], layoutInfo[INFO_IDX_LAYOUT_COUNT]));
-		//if(layout!=null)//
-		//{
-		//	addError(String.format(loc, "arrSize=%d, nRows=%d, layoutHeight=%d", layout.length, layout[LAYOUT_IDX_ROW_COUNT], layout[LAYOUT_IDX_HEIGHT_PX]));
-		//}
 
 		canvas.drawColor(theme_colors[COLOR_BACKGROUND]);//same everywhere
 		if(mode_unicode)
 		{
+			int searchBarColor=0xFF6A1FF5;
 			float textSizeFactor=1.3f;
 			float textSize=textPaint.getTextSize();
-			//float textMarginX=10, textMarginY=10;
-			float textMarginX=0, textMarginY=0, queryMarginX=30;//
+			float textMarginX=10, textMarginY=10, queryMarginX=30;
 			int nResults=uniSearch_results.size();
 			uniSearch_setRowHeight();
-			if(w<h)//portrait
+			if(w<h)//unicode search - portrait
 			{
-				//UNI_SEARCH_ROW_HEIGHT=(float)h/20;
 				int rBoxHeight=nResults;		//calculate dimensions
 				if(rBoxHeight<1)
 					rBoxHeight=1;
@@ -1461,14 +1196,7 @@ public class CKBview3 extends ViewGroup
 
 				textPaint.setTextSize(textSize*textSizeFactor);
 
-				//textPaint.setTextAlign(Paint.Align.LEFT);
-				draw_searchResults(0, w, 0, UNI_SEARCH_PORT_Y1, canvas);
-				//for(int k=0;k<nResults;++k)		//print search results
-				//{
-				//	SearchResult result=uniSearch_results.get(k);
-				//	drawText_byTopLeft(result.displayString, textMarginX, (float)k*UNI_SEARCH_ROW_HEIGHT-uniSearch_wpy+textMarginY, textPaint, canvas);
-				//	//canvas.drawText(result.displayString, textMarginX, (float)k*UNI_SEARCH_ROW_HEIGHT-uniSearch_wpy+textMarginY, textPaint);
-				//}
+				draw_searchResults(0, w, 0, UNI_SEARCH_PORT_Y1, canvas);		//print search results
 
 				if(!DEBUG_UNICODE)		//hide OOB text with opaque background
 				{
@@ -1477,39 +1205,30 @@ public class CKBview3 extends ViewGroup
 					buttonPaint.setColor(0xFF000000|theme_colors[COLOR_BACKGROUND]);
 					drawRect(0, w, UNI_SEARCH_PORT_Y2, kb_h, buttonPaint, canvas);
 
-					buttonPaint.setColor(0xFFFF00FF);//the searchbar is the back button
+					buttonPaint.setColor(searchBarColor);//the searchbar is the back button
 					drawRect(0, w, UNI_SEARCH_PORT_Y1, UNI_SEARCH_PORT_Y2, buttonPaint, canvas);
 
 					buttonPaint.setColor(color);
 				}
 
-				drawText_byTopLeft(uniSearch_query.toString(), queryMarginX, (UNI_SEARCH_PORT_Y1+UNI_SEARCH_PORT_Y2)*0.5f, false, true, textPaint, canvas);//print search query
-				//canvas.drawText(uniSearch_query.toString(), textMarginX, UNI_SEARCH_PORT_Y1+textMarginY, textPaint);
-				//textPaint.setTextAlign(Paint.Align.CENTER);
+				//print search query
+				drawText_byTopLeft(uniSearch_query.toString(), queryMarginX, (UNI_SEARCH_PORT_Y1+UNI_SEARCH_PORT_Y2)*0.5f, false, true, textPaint, canvas);
 
 				textPaint.setTextSize(textSize);
 
-				draw_kb_static_layout(backup_layout_port, 0, w, UNI_SEARCH_PORT_Y2, kb_h, radius, canvas);//draw layout
+				//draw layout
+				draw_kb_static_layout(backup_layout_port, 0, w, UNI_SEARCH_PORT_Y2, kb_h, radius, canvas);
 			}
-			else//landscape
+			else//unicode search - landscape
 			{
-				//UNI_SEARCH_ROW_HEIGHT=(float)kb_h/backup_layout_land_left.length;
 				UNI_SEARCH_LAND_X1=(int)(w*0.3);
 				UNI_SEARCH_LAND_X2=(int)(w*0.7);
 				UNI_SEARCH_LAND_Y1=(int)(kb_h-UNI_SEARCH_ROW_HEIGHT);
 				UNI_SEARCH_N_ROWS_TOTAL=backup_layout_land_left.length;
-			//	UNI_SEARCH_ROW_HEIGHT=(float)kb_h/backup_layout_land_left.length;
 
 				textPaint.setTextSize(textSize*textSizeFactor);
 
-				//textPaint.setTextAlign(Paint.Align.LEFT);
 				draw_searchResults(UNI_SEARCH_LAND_X1, UNI_SEARCH_LAND_X2, 0, UNI_SEARCH_LAND_Y1, canvas);
-				//for(int k=0;k<nResults;++k)
-				//{
-				//	SearchResult result=uniSearch_results.get(k);
-				//	drawText_byTopLeft(result.displayString, UNI_SEARCH_LAND_X1+textMarginX, textMarginY+(float)k*UNI_SEARCH_ROW_HEIGHT-uniSearch_wpy, textPaint, canvas);
-				//	//canvas.drawText(result.displayString, UNI_SEARCH_LAND_X1+textMarginX, textMarginY+(float)k*UNI_SEARCH_ROW_HEIGHT-uniSearch_wpy, textPaint);
-				//}
 
 				if(!DEBUG_UNICODE)		//hide OOB text with opaque background
 				{
@@ -1519,15 +1238,14 @@ public class CKBview3 extends ViewGroup
 					drawRect(0, UNI_SEARCH_LAND_X1, 0, kb_h, buttonPaint, canvas);
 					drawRect(UNI_SEARCH_LAND_X2, w, 0, kb_h, buttonPaint, canvas);
 
-					buttonPaint.setColor(0xFFFF00FF);//the searchbar is the back button
+					buttonPaint.setColor(searchBarColor);//the searchbar is the back button
 					drawRect(UNI_SEARCH_LAND_X1, UNI_SEARCH_LAND_X2, UNI_SEARCH_LAND_Y1, kb_h, buttonPaint, canvas);
 
 					buttonPaint.setColor(color);
 				}
 
+				//print search query
 				drawText_byTopLeft(uniSearch_query.toString(), UNI_SEARCH_LAND_X1+textMarginX, UNI_SEARCH_LAND_Y1+textMarginY, false, false, textPaint, canvas);
-				//canvas.drawText(uniSearch_query.toString(), UNI_SEARCH_LAND_X1+textMarginX, UNI_SEARCH_LAND_Y1+textMarginY, textPaint);
-				//textPaint.setTextAlign(Paint.Align.CENTER);
 
 				textPaint.setTextSize(textSize);
 
@@ -1613,17 +1331,6 @@ public class CKBview3 extends ViewGroup
 					draw_kb_button(x1, x2, y1, y2, kx, ky, code, radius, canvas);
 				}
 			}
-		/*	for(int ky=0, nRows=layout.size();ky<nRows;++ky)
-			{
-				int[] row=layout.get(ky);
-				int y1=row[0], y2=row[1], nButtons=(row.length-3)/2;
-				for(int kx=0;kx<nButtons;++kx)
-				{
-					int idx=3+kx*2,
-						x1=row[idx-1], code=row[idx], x2=row[idx+1];
-					draw_kb_button(x1, x2, y1, y2, kx, ky, code, radius, canvas);
-				}//end row loop
-			}//end keyboard loop		//*/
 		}
 
 	/*	if(DEBUG_TOUCH)//multitouch test
@@ -1664,31 +1371,9 @@ public class CKBview3 extends ViewGroup
 		}//*/
 
 		int xPos=w/4;//when logcat isn't enough
-		//if(android.os.Build.VERSION.SDK_INT>=android.os.Build.VERSION_CODES.M)//multiline text
-		//{
-			int py=0;
-			for(int ky=0;ky<urgentMsg.size();++ky)
-				py+=drawText_wrap(urgentMsg.get(ky), xPos, w, py, canvas);
-			//{
-			//	String str=urgentMsg.get(ky);
-			//	StaticLayout.Builder builder=StaticLayout.Builder.obtain(str, 0, str.length(), wrapPaint, w-xPos);
-			//	StaticLayout sl=builder.build();
-			//	int textHeight=sl.getHeight();
-			//	py+=textHeight;
-			//	canvas.translate(xPos, py);
-			//	sl.draw(canvas);
-			//	canvas.translate(-xPos, -py);
-			//}
-		//}
-		//else//single line text
-		//{
-		//	float py=textSize;//debug
-		//	for(int ky=0;ky<urgentMsg.size();++ky)
-		//	{
-		//		canvas.drawText(urgentMsg.get(ky), w*0.25f, py, textPaintDebug);
-		//		py+=textSize;
-		//	}
-		//}
+		int py=0;
+		for(int ky=0;ky<urgentMsg.size();++ky)
+			py+=drawText_wrap(urgentMsg.get(ky), xPos, w, py, canvas);
 	}
 
 	//timing
@@ -1702,9 +1387,6 @@ public class CKBview3 extends ViewGroup
 		case MODMASK|KEY_SHIFT:case MODMASK|KEY_CTRL:case MODMASK|KEY_ALT:
 		case MODMASK|KEY_INSERT:
 		case MODMASK|KEY_CAPSLOCK:case MODMASK|KEY_NUMLOCK:case MODMASK|KEY_SCROLLLOCK:
-	//	case MODMASK|KEY_MENU:
-	//	case MODMASK|KEY_STD:case MODMASK|KEY_SYM:case MODMASK|KEY_SPK:case MODMASK|KEY_FUN:
-	//	case MODMASK|KEY_TRANSPARENT:
 		case MODMASK|KEY_SETTINGS:
 		case MODMASK|KEY_UNICODE:
 		case MODMASK|KEY_SYMBOLS:
@@ -1715,25 +1397,15 @@ public class CKBview3 extends ViewGroup
 	boolean isLongPressableKey(int code)
 	{
 		return code==(MODMASK|KEY_SHIFT);//only shift has long press action
-
-	/*	switch(code)			//X
-		{
-		case MODMASK|KEY_SHIFT:		//sends pure down, stays on
-	//	case MODMASK|KEY_LAYOUT:	//switches language
-	//	case MODMASK|KEY_SETTINGS:	//toggles unicode mode
-			return true;
-		}
-		return false;//*/
 	}
 
 	//cursor control
 	void exitCursorControl()
 	{
 		cursor_control=CC_DISABLED;
-		isActive_shift=false;	service.onKeyCallback(MODMASK|KEY_SHIFT, 2);
-	//	isActive_ctrl=false;	service.onKeyCallback(MODMASK|KEY_CTRL, 2);
-	//	isActive_alt=false;		service.onKeyCallback(MODMASK|KEY_ALT, 2);
-	//	isActive_layout=false;
+
+		isActive_shift=false;
+		service.onKeyCallback(MODMASK|KEY_SHIFT, 2);
 	}
 	void applyCursorControl(TouchInfo.Pointer ti, int cc_flags)
 	{
@@ -1882,8 +1554,8 @@ public class CKBview3 extends ViewGroup
 
 	void set_possible_timers(TouchInfo.Pointer pointer, ButtonIdx button)
 	{
-		//String label=getLabel(button.code);//
-		//addError(String.format(loc, "set_possible_timers(%s)", label));//DEBUG
+		//String label=getLabel(button.code);//DEBUG
+		//addError(String.format(loc, "set_possible_timers(%s)", label));//
 		try
 		{
 			if(isTurboKey(button.code))
@@ -1930,12 +1602,6 @@ public class CKBview3 extends ViewGroup
 		//long end=System.nanoTime();
 		//addError(String.format(loc, "Elapsed: %d", end-start));//DEBUG
 
-		//for(int k=0;k<uniSearch_results.size();k+=2)
-		//{
-		//	SearchResult result=uniSearch_results.get(k);
-		//	removeView(result.tv);
-		//}
-
 		uniSearch_results.clear();
 		if(codes!=null)
 		{
@@ -1948,35 +1614,10 @@ public class CKBview3 extends ViewGroup
 					SearchResult result=new SearchResult();
 					result.code=codes[k];
 					result.name=Character.getName(codes[k]);
-					//char[] c=Character.toChars(codes[k]);
 					sb.appendCodePoint(codes[k]);
 					sb.append(String.format(loc, " (U+%X): %s", codes[k], result.name));
 					result.displayString=sb.toString();
 					sb.delete(0, sb.length());
-					//result.displayString=String.format(loc, "%s (U+%X): %s", Arrays.toString(c), codes[k], result.name);//String.format() DOESN'T LIKE UNICODE
-
-					//addError(result.displayString);//
-					//for(int k2=0;k2<result.displayString.length();++k2)//DEBUG
-					//{
-					//	char c2=result.displayString.charAt(k2);
-					//	addError(String.format(loc, "0x%04X: %c", (int)c2, c2));
-					//}
-
-					//https://stackoverflow.com/questions/4522337/unicode-characters-not-displayed-in-textview-settext
-					//Log.d("MULTIBYTE", result.displayString);//double question marks for multibyte codepoints
-
-					//result.tv=new TextView(service);
-					//result.tv.setText(result.displayString);
-					//result.tv.setVisibility(VISIBLE);
-					//addView(result.tv);
-					//int y=(int)(k*UNI_SEARCH_ROW_HEIGHT);
-					//result.tv.layout(0, y, w, (int)(y+UNI_SEARCH_ROW_HEIGHT));
-
-					//result.displayString=String.format("%s (U+%X): %s", Arrays.toString(Character.toChars(codes[k])), codes[k], result.name);
-
-					//addError(String.format(loc, "codepoint 0x%08X", result.code));
-					//for(char value: c)//DEBUG4
-					//	addError(String.format(loc, "0x%04X", (int)value));
 
 					uniSearch_results.add(result);
 				}
@@ -1987,7 +1628,7 @@ public class CKBview3 extends ViewGroup
 				{
 					SearchResult result=new SearchResult();
 					result.code=codes[k];
-					result.displayString=String.format("%s (U+%X)", Arrays.toString(Character.toChars(codes[k])), codes[k]);
+					result.displayString=Arrays.toString(Character.toChars(codes[k]))+String.format(" (U+%X)", codes[k]);
 					uniSearch_results.add(result);
 				}
 			}
@@ -2005,20 +1646,18 @@ public class CKBview3 extends ViewGroup
 			nRows+=backup_layout_port.length+1;
 			int height=(int)(nRows*UNI_SEARCH_ROW_HEIGHT);
 			set_kb_height(height);
-			//set_kb_height((int)(UNI_SEARCH_ROW_HEIGHT*(backup_layout_port.length+1+nRows)));
-			//invalidate();
 
 			//addError(String.format(loc, "nRows = %d, height = %d", nRows, height));//DEBUG-2
 		}
 	}
-	void uniSearch_handle_layout(int[][] layout, int x1, int x2, int y1, int y2, TouchInfo.Pointer pointer)//type to 'unicode search bar'
+	void uniSearch_handle_layout(int[][] layout, int x1, int x2, int y1, int y2, TouchInfo.Pointer pointer)//keyboard writes to 'unicode search bar'
 	{
 		ButtonIdx button=getButton_px_static(layout, x1, x2, y1, y2, pointer.x, pointer.y);
 		if(pointer.state==TouchInfo.S_DOWN)
 		{
 			String label=getLabel(button.code);
 			showKeyPreview(button, label);
-			//if(!button.invalid())
+			//if(!button.invalid())				//X  no timers in unicode search mode for now
 			//	set_possible_timers(pointer, button);
 		}
 		if(pointer.state==TouchInfo.S_UP||pointer.state==TouchInfo.S_CANCEL)
@@ -2088,11 +1727,7 @@ public class CKBview3 extends ViewGroup
 			if(Math.abs(pointer.x-pointer.startx)>10||Math.abs(pointer.y-pointer.starty)>10)
 			{
 				if(uniSearch_isScrollable())//scroll
-				{
 					uniSearch_drag=UNI_SEARCH_DRAG_SCROLL;
-					//uniSearch_scrollStart.x=pointer.x;
-					//uniSearch_scrollStart.y=pointer.y;
-				}
 			}
 			else if(pointer.state==TouchInfo.S_UP)//select result
 			{
@@ -2175,7 +1810,6 @@ public class CKBview3 extends ViewGroup
 		logCursorControl(frame_counter+" BEFORE");
 
 		TouchInfo.Pointer ti_shift=null, ti=null, ti2=null;
-		//Collections.sort(touchInfo, (o1, o2)->Integer.compare(o1.id, o2.id));//sort touchInfo by order of appearance
 		if(isHeld_shift)
 		{
 			int shift_idx=touchInfo.findPointerIndex(touchId_shift);
@@ -2198,23 +1832,12 @@ public class CKBview3 extends ViewGroup
 			isHeld_shift=false;
 		if(mode_unicode)
 		{
-			//addError(String.format(loc, "TOUCH: mode_unicode"));//DEBUG
-
 			int idx=touchInfo.findPointerIndex(0);//find 1st pointer
 			if(idx==touchInfo.size())//ignore other pointers
 				return true;
 			TouchInfo.Pointer pointer=touchInfo.get(idx);
-			//if(pointer.starty<0||pointer.starty>kb_h)
-			//	return true;
-			//TouchInfo.Pointer pointer=null;
-			//for(int k=0;k<touchInfo.size();++k)//find oldest pointer		X  will switch to next pointer
-			//{
-			//	TouchInfo.Pointer p2=touchInfo.get(k);
-			//	if(pointer==null||pointer.id>p2.id)
-			//		pointer=p2;
-			//}
-			//if(pointer==null)
-			//	return true;
+			if(pointer==null)
+				return true;
 			if(w<h)//portrait
 			{
 				if(pointer.starty<UNI_SEARCH_PORT_Y1)//search results box
@@ -2246,43 +1869,6 @@ public class CKBview3 extends ViewGroup
 				else//QWERTY right
 					uniSearch_handle_layout(backup_layout_land_right, UNI_SEARCH_LAND_X2, w, 0, kb_h, pointer);
 			}
-		/*	int nResults=uniSearch_results.size();
-			if(w<h)//portrait
-			{
-				for(int k=0;k<size;++k)
-				{
-					ti=touchInfo.get(k);
-					if(ti.starty<0)
-						continue;
-					if(ti.starty<UNI_SEARCH_PORT_Y1)//search results
-					{
-					}
-					else if(ti.starty<UNI_SEARCH_PORT_Y2)//search query
-					{
-					}
-					else if(ti.starty<kb_h)//keyboard
-					{
-					}
-				}
-			}
-			else//landscape
-			{
-				for(int k=0;k<size;++k)
-				{
-					ti=touchInfo.get(k);
-					//if(ti.starty<0||ti.starty>kb_h)
-					//	continue;
-					if(ti.startx<UNI_SEARCH_LAND_X1)//search results
-					{
-					}
-					else if(ti.startx<UNI_SEARCH_LAND_X2)//search query
-					{
-					}
-					else if(ti.startx<w)//keyboard
-					{
-					}
-				}
-			}//*/
 			return true;
 		}
 		if(cursor_control==CC_DISABLED)//normal keyboard
@@ -2295,14 +1881,12 @@ public class CKBview3 extends ViewGroup
 					ButtonIdx
 						bIdx0=getButton_px(ti.startx, ti.starty),
 					//	bIdx0=getButton_px(ti.prevx, ti.prevy),
-						bIdx=getButton_px(ti.x, ti.y);
 
-					//addError(String.format(loc, "TOUCH: normal, state=%d, code=0x%08X", ti.state, bIdx.code));//DEBUG
+						bIdx=getButton_px(ti.x, ti.y);
 
 					switch(ti.state)
 					{
 					case TouchInfo.S_DOWN://normal keyboard
-						//touchId_current=ti.id;//
 						tap_x=bIdx.kx; tap_y=bIdx.ky;
 						if(isHeld_shift)//start selection (and cursor) control immediately
 						{
@@ -2330,7 +1914,6 @@ public class CKBview3 extends ViewGroup
 									isActive_shift=false;
 									service.onKeyCallback(bIdx.code, 2);
 									quickMode=0;
-									//kb.selectLayout(MODMASK|KEY_STD);
 								}
 								else
 								{
@@ -2350,6 +1933,7 @@ public class CKBview3 extends ViewGroup
 						{
 							cursor_control=CC_LANG;
 							touchId_switchLang=ti.id;
+							tap_x=-1; tap_y=-1;
 							hideKeyPreview();
 							if(timerOn!=0)
 							{
@@ -2452,7 +2036,6 @@ public class CKBview3 extends ViewGroup
 							if(quickMode!=0&&!isLongPressableKey(bIdx.code))
 							{
 								quickMode=0;
-								//kb.exitQuickMode();
 								isActive_shift=false;//2022-07-07
 							}
 						}
@@ -2464,13 +2047,11 @@ public class CKBview3 extends ViewGroup
 		else if(cursor_control==CC_LANG)//switch language
 		{
 			int idx=touchInfo.findPointerIndex(touchId_switchLang);
-			//addError(String.format(loc, "TOUCH: lang, touchId=%d, touchIdx=%d, count=%d", touchId_switchLang, idx, size));//DEBUG
 			if(idx>=size)
 				cursor_control=CC_DISABLED;
 			else
 			{
 				ti=touchInfo.get(idx);
-				//addError(String.format(loc, "TOUCH: lang pointer state=%d", ti.state));//DEBUG
 				if(ti.state==TouchInfo.S_UP)
 				{
 					int nLayouts=layoutInfo[INFO_IDX_LAYOUT_COUNT];

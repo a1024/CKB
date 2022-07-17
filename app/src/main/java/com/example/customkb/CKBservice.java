@@ -514,27 +514,6 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 				}
 				break;
 
-		/*	case CKBview3.MODMASK|CKBview3.KEY_LAYOUT:
-			//case CKBview3.SK_STD:
-			//case CKBview3.SK_SYM:
-			//case CKBview3.SK_ALL:
-			//case CKBview3.SK_SPK:
-			//case CKBview3.SK_FUN:
-				if((flags&1)!=0)//down
-				{
-					if(Thread.currentThread().getId()==thread_id)
-						myView.switchLayout();
-					else
-					{
-						myView.pend_switch=1;
-						myView.postInvalidate();
-					}
-				}
-				//	myView.kb.selectLayout(key);
-				break;//*/
-			//case CKBview3.MODMASK|CKBview3.KEY_TRANSPARENT:
-			//	transparent=!transparent;
-			//	break;
 			case CKBview3.MODMASK|CKBview3.KEY_SYMBOLS:
 				myView.toggleSymbolsExtension();
 				break;
@@ -549,11 +528,8 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 					startActivity(intent);
 				}
 				break;
-			//case CKBview3.MODMASK|CKBview3.KEY_UNICODE:
-			//	//TODO: extended unicode layout (scrollable)
-			//	break;
 			case CKBview3.MODMASK|CKBview3.KEY_NAB:
-				//should be empty
+				//this should be empty
 				break;
 			case 'A':case 'a':
 				if(myView.isActive_ctrl)
@@ -595,7 +571,7 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 			case CKBview3.MODMASK|CKBview3.KEY_COPY:
 				{
 					boolean success;
-					if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.N)//TODO: test this
+					if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.N)
 					{
 						success=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_COPY));
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_COPY));
@@ -619,7 +595,7 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 				if(myView.isActive_ctrl)
 				{
 					boolean success;
-					if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.N)//TODO: test this
+					if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.N)
 					{
 						success=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_COPY));
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_COPY));
@@ -651,7 +627,7 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 				if(myView.isActive_ctrl)
 				{
 					boolean success;
-					if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.N)//TODO: test this
+					if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.N)
 					{
 						success=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_COPY));
 						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_COPY));

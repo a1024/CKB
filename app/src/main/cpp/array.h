@@ -33,7 +33,7 @@ void		memswap_slow(void *p1, void *p2, size_t size);
 void 		memswap(void *p1, void *p2, size_t size, void *temp);
 void		memreverse(void *p, size_t count, size_t esize);//calls memswap
 void 		memrotate(void *p, size_t byteoffset, size_t bytesize, void *temp);//temp buffer is min(byteoffset, bytesize-byteoffset)
-int 		binary_search(const void *base, size_t count, size_t esize, int (*threeway)(const void*, const void*), const void *val, size_t *idx);//returns true if found, otherwise the idx is where val should be inserted
+int 		binary_search(const void *base, size_t count, size_t esize, int (*threeway)(const void*, const void*), const void *val, size_t *idx);//returns true if found, otherwise the idx is where val should be inserted, standard bsearch doesn't do this
 void 		isort(void *base, size_t count, size_t esize, int (*threeway)(const void*, const void*));//binary insertion sort
 
 int			log_error(const char *file, int line, const char *format, ...);

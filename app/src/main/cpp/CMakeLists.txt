@@ -6,11 +6,10 @@ cmake_minimum_required(VERSION 3.4.1)
 add_library(
 	ckb SHARED
 	array.c
-	ckb.c
 	parser.c
 	default_config.cpp
-
-	unicode.c
+	unicode_search.c
+	ckb.c
 )
 
 # add lib dependencies
