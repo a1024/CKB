@@ -333,8 +333,10 @@ public class CKBview3 extends ViewGroup
 	int tap_x=-1, tap_y=-1;//layout coordinates of currently held button
 	int ccGridX, ccGridY;
 	int quickMode=0;
-	boolean isActive_ctrl, isActive_alt, isActive_shift;
-	//boolean isActive_layout;
+	public boolean
+		isActive_shift=false,	//maintained by CKBview3
+		isActive_ctrl=false,	//maintained by CKBservice
+		isActive_alt=false;		//maintained by CKBservice
 	CKBservice service;
 
 	//timing
@@ -345,7 +347,6 @@ public class CKBview3 extends ViewGroup
 	Timer timer=new Timer();
 	int timerOn=0;//0: off, 1: turboTask, 2: longPressTask
 	int touchId_timer;
-	//public int pend_switch=0;//X  only shift has long press action		1: prev. l a y o u t, 2: next l a y o u t			//3: toggle unicode mode
 	class TurboTask extends TimerTask
 	{
 		public int code;
@@ -375,9 +376,9 @@ public class CKBview3 extends ViewGroup
 	//debug tools
 	public static final String TAG="customkb";
 	public static final boolean
-		DEBUG_ACCUMULATE=true,//was true
-		DEBUG_TOUCH		=false,//works
-		DEBUG_CC		=false,//CC_DISABLED
+		DEBUG_ACCUMULATE=true,//display all logcat errors right on the keyboard
+		DEBUG_TOUCH		=false,//touch works
+		DEBUG_CC		=false,//just prints CC_DISABLED most of the time
 		DEBUG_STATE		=false,//just shift
 		DEBUG_MODE		=false,
 		DEBUG_COLORS	=false,
@@ -893,6 +894,8 @@ public class CKBview3 extends ViewGroup
 				else
 					layoutNames.add(name);
 			}
+			if(layoutInfo[INFO_IDX_SELECTED_IDX]<0)
+				layoutHasExtension=false;
 			switch_layout(layoutInfo[INFO_IDX_SELECTED_IDX], layoutHasExtension);
 
 			//addError(String.format(loc, "Selecting layout %d/%d, extension=%d, layout size=%d",

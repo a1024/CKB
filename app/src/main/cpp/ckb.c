@@ -35,9 +35,6 @@ static const char file[]=__FILE__;
 //	ALWAYS_RESET shouldn't be defined
 
 //	#define DEBUG_ARRAY
-//	#define DEBUG_FILE
-//	#define DEBUG_ERROR
-//	#define DEBUG_LANG
 //	#define DEBUG_HEAP
 
 	#define STORE_ERRORS//disable this macro when using L O G _ E R R O R for debug
@@ -154,21 +151,10 @@ int			log_error(const char *f, int line, const char *format, ...)
 	LOGE("%s", g_buf);
 
 #ifdef STORE_ERRORS
-#ifdef DEBUG_ERROR
-	LOGE("errors == %p", errors);//
-#endif
-
 	if(!errors)
 		ARRAY_ALLOC(ArrayHandle, errors, 0, 0);
 	ArrayHandle *e=(ArrayHandle*)ARRAY_APPEND(errors, 0, 1, 1, 0);
 	STR_ALLOC(*e, 0);
-
-#ifdef DEBUG_ERROR
-	LOGE("e == %p", e);//
-	if(e)//
-		LOGE("*e == %p", *e);//
-#endif
-
 	array_assign(e, g_buf, printed+1);
 #endif
 
@@ -199,7 +185,6 @@ ArrayHandle	load_text(const char *filename)
 	if(!f)
 	{
 		LOG_ERROR("Cannot read %s, %d: %s", filename, error, strerror(error));
-		//LOG_ERROR("Cannot read %s", filename);
 		return 0;
 	}
 	STR_ALLOC(ret, info.st_size);
@@ -278,13 +263,11 @@ const char*	layoutType2str(Layout const *layout)//for debug
 
 	//these layouts must have language 'lang':
 	case LAYOUT_LANG:			return "lang";
-//	case LAYOUT_URL:			return "url";
 
 	//these layouts must appear only once:
 	case LAYOUT_SYMBOLS_EXTENSION:	return "symbols";
-//	case LAYOUT_ASCII:				return "ascii";
-	case LAYOUT_NUMPAD:				return "numpad";
-	case LAYOUT_DECNUMPAD:			return "decnumpad";
+	case LAYOUT_NUMPAD:				return "numPad";
+	case LAYOUT_DECNUMPAD:			return "decNumPad";
 	default:						break;
 	}
 	return "UNIDENTIFIED";
@@ -294,9 +277,9 @@ Layout*		get_layout(Context *ctx, int idx)
 	if(idx==-3)
 		return &ctx->symbolsExtension;
 	if(idx==-2)
-		return &ctx->numPad;
-	if(idx==-1)
 		return &ctx->decNumPad;
+	if(idx==-1)
+		return &ctx->numPad;
 	if(idx<0||idx>=(int)ctx->layouts->count)
 	{
 		LOG_ERROR("Layout index out of bounds: idx=%d, count=%d", idx, ctx->layouts->count);
@@ -362,10 +345,7 @@ EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_init
 
 	ret=glob_alloc();
 	if(ret)
-	{
-		//glob->mode=(ModeType)mode;
 		glob->w=width, glob->h=height;
-	}
 	if(ret==1)
 	{
 #ifdef ALWAYS_RESET
@@ -373,19 +353,10 @@ EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_init
 #else
 		text=load_text(stateFilename);
 #endif
-//#ifdef DEBUG_FILE
-//		LOG_ERROR("text == %p", text);//
-//#endif
 		if(!text)
 		{
 			size_t len=strlen(default_config);
-//#ifdef DEBUG_FILE
-//			LOG_ERROR("len == %lld", (long long)len);//
-//#endif
 			ret=save_text(stateFilename, default_config, len);
-//#ifdef DEBUG_FILE
-//			LOG_ERROR("success == %d", ret);//
-//#endif
 			if(ret)
 				text=load_text(stateFilename);
 		}
@@ -393,13 +364,7 @@ EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_init
 		{
 			ret=parse_state((char*)text->data, text->count, &glob->ctx, 0, 0, 0);
 			ret&=calc_raster_sizes(&glob->ctx, glob->w, glob->h, glob->w>glob->h);
-//#ifdef DEBUG_FILE
-//			LOG_ERROR("success == %d, text == %.*s...", ret, 100, (char*)text->data);//
-//#endif
 			array_free(&text, 0);
-//#ifdef DEBUG_FILE
-//			LOG_ERROR("text was freed");//
-//#endif
 		}
 		else
 			ret=0;
@@ -407,13 +372,9 @@ EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_init
 	else
 		ret=1;
 
-//#ifdef DEBUG_FILE
-//	LOG_ERROR("After parsing: success == %d", ret);//
-//#endif
 	if(!ret)
 		return 0;
 
-	//glob->prevLayoutIdx=glob->layoutIdx;
 	int layoutIdx=layoutIdxHint;
 	switch(mode)//should take hint only if it's not -10 and it has the same mode (text vs numeric)
 	{
@@ -424,32 +385,16 @@ EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_init
 	case MODE_EMAIL:
 		if(layoutIdx<0)//replace numPad layouts that have indices {-2, -1}
 			layoutIdx=find_layout_idx(LAYOUT_LANG, glob->ctx.defaultLang);
-		//LOG_ERROR("TEXT LAYOUT IS CHOSEN, mode=%d, layoutIdx=%d", mode, layoutIdx);//DEBUG
 		break;
-
-	//case MODE_PASSWORD:
-	//	glob->layoutIdx=find_layout_idx(LAYOUT_ASCII, 0);
-	//	break;
-	//case MODE_URL:
-	//case MODE_EMAIL:
-	//	glob->layoutIdx=find_layout_idx(LAYOUT_URL, glob->ctx.defaultLang);
-	//	break;
 
 	//numeric modes
 	case MODE_NUMBER:
 	case MODE_PHONE_NUMBER:
 	case MODE_NUMERIC_PASSWORD:
-		//if(layoutIdx==-10||layoutIdx>=0)//illegal layout index, see CKBview3.java
-		{
-			if(decNumPad)
-				layoutIdx=-2;
-			else
-				layoutIdx=-1;
-		}
-		//if(decNumPad)
-		//	glob->layoutIdx=find_layout_idx(LAYOUT_DECNUMPAD, 0);
-		//else
-		//	glob->layoutIdx=find_layout_idx(LAYOUT_NUMPAD, 0);
+		if(decNumPad)
+			layoutIdx=-2;
+		else
+			layoutIdx=-1;
 		break;
 	default:
 		LOG_ERROR("Unrecognized mode %d", mode);
@@ -458,16 +403,6 @@ EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_init
 	Layout *l2=get_layout(&glob->ctx, layoutIdx);
 	if(!l2)
 		return 0;
-	//glob->layoutIdx=layoutIdx;
-	//Layout *l2=array_at(&glob->ctx.layouts, glob->layoutIdx);
-//#ifdef DEBUG_FILE
-//		LOG_ERROR("Selected layout %d: %s %s", glob->layoutIdx, layoutType2str(l2), l2->type==LAYOUT_LANG||l2->type==LAYOUT_URL?(char*)l2->lang->data:"(not a language)");//
-//#endif
-	//if(width<height)//portrait
-	//	return (int)l2->portrait->count;
-	//return (int)l2->landscape->count;
-
-	//LOG_ERROR("Mode=%d, selected %d/%d", mode, layoutIdx, (int)glob->ctx.layouts->count);//DEBUG
 
 	jResult=env[0]->NewIntArray(env, 2);
 	if(!jResult)
@@ -605,33 +540,14 @@ EXTERN_C JNIEXPORT jstring JNICALL Java_com_example_customkb_CKBnativelib_getLay
 		return 0;
 	switch(layout->type)
 	{
-	case LAYOUT_UNINITIALIZED://illegal value
-		a="Layout\nError";
-		break;
+	case LAYOUT_UNINITIALIZED:		a="Layout\nError";	break;//illegal value
 
-	//these layouts must have language 'lang':
-	case LAYOUT_LANG:
-	//case LAYOUT_URL:
-		a=(char*)layout->lang->data;
-		break;
+	case LAYOUT_LANG:				a=(char*)layout->lang->data;break;//must have a language 'lang'
 
-	//these layouts must appear only once:
-	//case LAYOUT_ASCII:
-	//	a="ASCII";
-	//	break;
-	case LAYOUT_SYMBOLS_EXTENSION:
-		a="Symbols";
-		break;
-	case LAYOUT_NUMPAD:
-		a="NumPad";
-		break;
-	case LAYOUT_DECNUMPAD:
-		a="DecNumPad";
-		break;
-
-	default:
-		a="Layout\nError";
-		break;
+	case LAYOUT_SYMBOLS_EXTENSION:	a="Symbols";		break;
+	case LAYOUT_NUMPAD:				a="NumPad";			break;
+	case LAYOUT_DECNUMPAD:			a="DecNumPad";		break;
+	default:						a="Layout\nError";	break;
 	}
 	result=env[0]->NewStringUTF(env, a);
 	if(!result)

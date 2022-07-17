@@ -421,7 +421,6 @@ static int	read_codepoint(const char *text, size_t text_len, int *k)
 			int lineStart, lineNo=get_lineNo(text, *k, &lineStart);
 			log_error("Config", lineNo+1, "col %d: Expected a closing quote, got code=%08X, followed by 0x%02X-%02X-%02X", *k-lineStart, code, text[*k], text[*k+1], text[*k+2]);
 			log_error("Config", lineNo+1, "col %d: ...can't read character literal %.*s", *k-lineStart, k0+50<text_len?50:text_len-k0, text+k0);
-			//LOGE("Config(%d:%d): Expected a closing quote", lineNo+1, *k-lineStart);
 			return 0;
 		}
 		++*k;
@@ -614,18 +613,6 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 			layout=&ctx->symbolsExtension;
 			layout->type=LAYOUT_SYMBOLS_EXTENSION;
 		}
-	/*	else if((len=memCmp_ascii_ci(text+k, kw_url)))//layout type is 'url'
-		{
-			k+=len;
-			layout->type=LAYOUT_URL;
-			if(!parse_langName(text, text_len, &k, &layout->lang))
-				break;
-		}
-		else if((len=memCmp_ascii_ci(text+k, kw_ascii)))//layout type is 'ascii'
-		{
-			k+=len;
-			layout->type=LAYOUT_ASCII;
-		}//*/
 		else if((len=memCmp_ascii_ci(text+k, kw_numPad)))//layout type is 'numpad'
 		{
 			if(numPadAppeared)
@@ -633,7 +620,6 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 			numPadAppeared=1;
 			k+=len;
 			layout=&ctx->numPad;
-			//layout=(Layout*)ARRAY_APPEND(ctx->layouts, 0, 1, 1, 0);
 			layout->type=LAYOUT_NUMPAD;
 		}
 		else if((len=memCmp_ascii_ci(text+k, kw_decNumPad)))//layout type is 'decnumpad'
@@ -643,7 +629,6 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 			decNumPadAppeared=1;
 			k+=len;
 			layout=&ctx->decNumPad;
-			//layout=(Layout*)ARRAY_APPEND(ctx->layouts, 0, 1, 1, 0);
 			layout->type=LAYOUT_DECNUMPAD;
 		}
 		else//layout must be one of the previous types
@@ -664,7 +649,6 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 					{
 						int lineStart, lineNo=get_lineNo(text, k, &lineStart);
 						log_error("Config", lineNo+1, "col %d: Duplicate \'layout lang %s\'", k-lineStart, (char*)layout->lang->data);
-						//LOGE("Config(%d): Duplicate \'layout %s %s\'", lineNo, layout->type==LAYOUT_LANG?kw_lang:kw_url, (char*)layout->lang->data);
 						//return 0;
 					}
 				}
@@ -680,7 +664,6 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 					default:						a="<unknown>";	break;
 					}
 					log_error("Config", lineNo+1, "col %d: Duplicate \'layout %s\'", k-lineStart, a);
-					//LOGE("Config(%d): Duplicate \'layout %s\'", lineNo, a);
 				}
 			}
 		}
@@ -789,12 +772,6 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 		return parse_error(text, (int)text_len-1, "Missing \'layout decnumpad\'");
 	if(!numPadAppeared)
 		return parse_error(text, (int)text_len-1, "Missing \'layout numpad\'");
-	//if(ctx->symbolsExtension.type!=LAYOUT_SYMBOLS_EXTENSION||!ctx->symbolsExtension.portrait||!ctx->symbolsExtension.landscape)
-	//	return parse_error(text, (int)text_len-1, "Missing \'layout symbols{...}\'");
-	//if(ctx->numPad.type!=LAYOUT_SYMBOLS_EXTENSION||!ctx->numPad.portrait||!ctx->numPad.landscape)
-	//	return parse_error(text, (int)text_len-1, "Missing \'layout numpad{...}\'");
-	//if(ctx->decNumPad.type!=LAYOUT_SYMBOLS_EXTENSION||!ctx->decNumPad.portrait||!ctx->decNumPad.landscape)
-	//	return parse_error(text, (int)text_len-1, "Missing \'layout decnumpad{...}\'");
 
 	if(!ctx->defaultLang)
 		return parse_error(text, (int)text_len-1, "Missing default language declaration, for example: \'lang en\'");
@@ -817,8 +794,6 @@ int 		parse_state(const char *cText, size_t text_len, Context *ctx0, ArrayHandle
 		lno=get_lineNo(text, (int)text_len-1, &lStart);
 		log_error("Config", lno+1, "col %d: Missing \'layout lang %s\'", lStart, (char*)ctx->defaultLang->data);
 	}
-	//if(!found_url)
-	//	log_error("Config", lno+1, "col %d: Missing \'layout url %s\'", lStart, (char*)ctx->defaultLang->data);
 	if(store_theme)
 		free_context(&dummy_ctx);
 	return found_lang;

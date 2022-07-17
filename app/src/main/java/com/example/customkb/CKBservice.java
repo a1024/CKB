@@ -22,7 +22,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.inputmethodservice.InputMethodService;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Handler;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -70,7 +69,7 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 		{
 			if(DEBUGGER)
 				android.os.Debug.waitForDebugger();
-			//Log.e(TAG, System.getProperty("java.version"));//
+			//Log.e(TAG, System.getProperty("java.version"));//old DEBUG line
 			LayoutInflater inflater=getLayoutInflater();
 			main_layout=(RelativeLayout)inflater.inflate(R.layout.parent_layout, null);
 			myView=main_layout.findViewById(R.id.kb_view);
@@ -232,7 +231,6 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 							{
 								char c=et.text.charAt(cursor);
 								if((c&0xD800)==0xD800)//surrogate pair
-								//if(c>=0xD800&&c<=0xDFFF)//X  condition doesn't differentiate between first and second surrogate
 									cursor+=2;
 								else
 									++cursor;
@@ -363,7 +361,6 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 		InputConnection inCon=getCurrentInputConnection();
 		if(inCon!=null)
 		{
-			//CharSequence selection;
 			switch(key)
 			{
 			case '\n':
@@ -385,33 +382,24 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 			case CKBview3.MODMASK|CKBview3.KEY_CAPSLOCK:
 				myView.isActive_shift=!myView.isActive_shift;
 				break;
-			case CKBview3.MODMASK|CKBview3.KEY_SHIFT://TODO: separate ACTION_DOWN (long press) & ACTION_UP, short press is normal
-				//if(flags==3)
-				//	myView.kb.toggleShift();
-				//else
-				if(flags!=3)
-				{
-					if((flags&1)!=0)
-						inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_CAPS_LOCK));
-					if((flags&2)!=0)
-						inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_CAPS_LOCK));
-				}
+			case CKBview3.MODMASK|CKBview3.KEY_SHIFT:
+				//nothing to do here
 				break;
 			case CKBview3.MODMASK|CKBview3.KEY_CTRL:
 				myView.isActive_ctrl=!myView.isActive_ctrl;
-				if(myView.isActive_ctrl)//does nothing
-					inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_CTRL_LEFT));
-				else
-					inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_CTRL_LEFT));
+				//if(myView.isActive_ctrl)//does nothing
+				//	inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_CTRL_LEFT));
+				//else
+				//	inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_CTRL_LEFT));
 				break;
 			case CKBview3.MODMASK|CKBview3.KEY_ALT:
 				myView.isActive_alt=!myView.isActive_alt;
-				if(myView.isActive_alt)//does nothing
-					inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_LEFT));
-				else
-					inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_LEFT));
+				//if(myView.isActive_alt)//does nothing
+				//	inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_LEFT));
+				//else
+				//	inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_LEFT));
 				break;
-			case CKBview3.MODMASK|CKBview3.KEY_HOME://FIXME sending ctrl down, home, ctrl up doesn't work
+			case CKBview3.MODMASK|CKBview3.KEY_HOME:
 				if(myView.isActive_ctrl)//ctrl home
 				{
 					inCon.setSelection(0, 0);
@@ -457,13 +445,13 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, functionKey));
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, functionKey));
 				break;
-			case CKBview3.MODMASK|CKBview3.KEY_PRINTSCREEN://does nothing
-				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_SYSRQ));
-				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SYSRQ));
+			case CKBview3.MODMASK|CKBview3.KEY_PRINTSCREEN:
+				//inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_SYSRQ));//does nothing
+				//inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SYSRQ));
 				break;
 			case CKBview3.MODMASK|CKBview3.KEY_PAUSE://useless: this is sent to an EditText
-				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE));
-				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE));
+				//inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE));
+				//inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE));
 				break;
 			case CKBview3.MODMASK|CKBview3.KEY_NUMLOCK:
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_NUM_LOCK));
@@ -517,13 +505,10 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 			case CKBview3.MODMASK|CKBview3.KEY_SYMBOLS:
 				myView.toggleSymbolsExtension();
 				break;
-			case CKBview3.MODMASK|CKBview3.KEY_SETTINGS://TODO: keyboard settings activity (unicode search, layout customization, color theme)
+			case CKBview3.MODMASK|CKBview3.KEY_SETTINGS:
 				if((flags&1)!=0)//down
 				{
-					//Intent intent=new Intent(this, SettingsActivity.class);
 					Intent intent=new Intent(this, CKBactivity.class);//https://developer.android.com/training/basics/firstapp/starting-activity
-					//Intent intent=new Intent("com.example.ckbdemo.CKBsettings");//https://stackoverflow.com/questions/13636631/how-to-start-activity-for-result-from-ime
-					//intent.putExtra("keyboard", true);
 					intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 					startActivity(intent);
 				}
@@ -550,20 +535,9 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 			case CKBview3.MODMASK|CKBview3.KEY_CUT:
 				{
 					boolean success;
-					if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.N)//TODO: test this
-					{
-						success=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_COPY));
-						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_COPY));
-						if(success)
-							displayToast("Copied to clipboard");
-					}
-					else
-						success=copySelectionToClipboardLoud(inCon);
+					success=copySelectionToClipboardLoud(inCon);
 					if(success)
-					{
-						inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL));
-						inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL));
-					}
+						inCon.commitText("", 1);
 					else
 						displayToast("Failed to copy");
 				}
@@ -571,15 +545,7 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 			case CKBview3.MODMASK|CKBview3.KEY_COPY:
 				{
 					boolean success;
-					if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.N)
-					{
-						success=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_COPY));
-						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_COPY));
-						if(success)
-							displayToast("Copied to clipboard");
-					}
-					else
-						success=copySelectionToClipboardLoud(inCon);
+					success=copySelectionToClipboardLoud(inCon);
 					if(!success)
 						displayToast("Failed to copy");
 				}
@@ -595,19 +561,11 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 				if(myView.isActive_ctrl)
 				{
 					boolean success;
-					if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.N)
-					{
-						success=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_COPY));
-						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_COPY));
-						if(success)
-							displayToast("Copied to clipboard");
-						else
-							displayToast("Failed to copy");
-					}
-					else
-						success=copySelectionToClipboardLoud(inCon);
+					success=copySelectionToClipboardLoud(inCon);
 					if(success)
 						myView.isActive_ctrl=false;
+					else
+						displayToast("Failed to copy");
 				}
 				else
 					sendAsIs(key, inCon);
@@ -627,13 +585,7 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 				if(myView.isActive_ctrl)
 				{
 					boolean success;
-					if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.N)
-					{
-						success=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_COPY));
-						success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_COPY));
-					}
-					else
-						success=copySelectionToClipboardLoud(inCon);
+					success=copySelectionToClipboardLoud(inCon);
 					if(success)
 					{
 						inCon.commitText("", 1);
