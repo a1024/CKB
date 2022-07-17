@@ -82,14 +82,14 @@ list of special keys:
 	'\n' (enter)
 	'\b' (backspace)
 	127 (delete)
-	ins (insert)
+	ins (insert, useless)
 	27 (escape)
 	caps (caps lock)
-	numlk (num lock)
-	scrlk (scroll lock)
-	prscr (print screen)
+	numlk (num lock, useless)
+	scrlk (scroll lock, useless)
+	prscr (print screen, useless)
 	pause
-	f1 ... f12
+	f1 ... f12 (useless)
 	cut
 	copy
 	paste
@@ -133,13 +133,13 @@ symbols 1, settings 1,	'z' 1, 'x' 1, 'c' 1, 'v' 1, 'b' 1,			' ' 3,					'1' 1, '2
 
 layout lang ar
 portrait 0.385{
-unicode 1, copy 1, paste 1, 'ئ' 1, ctrl 1, home 1, end 1, pgup 1, pgdn 1, 127 1;
+unicode 1, copy 1, paste 1, '؟' 1, ctrl 1, home 1, end 1, pgup 1, pgdn 1, 127 1;
 '١' 1, '٢' 1, '٣' 1, '٤' 1, '٥' 1, '٦' 1, '٧' 1, '٨' 1, '٩' 1, '٠' 1, '٪' 1;
 'أ' 1, 'آ' 1, 'إ' 1, 0x64E 1, 0x64F 1, 0x650 1, 0x64B 1, 0x64C 1, 0x64D 1, 0x651 1, 0x652 1;
 'ض' 1, 'ص' 1, 'ث' 1, 'ق' 1, 'ف' 1, 'غ' 1, 'ع' 1, 'ه' 1, 'خ' 1, 'ح' 1, 'ج' 1;
 'ش' 1, 'س' 1, 'ي' 1, 'ب' 1, 'ل' 1, 'ا' 1, 'ت' 1, 'ن' 1, 'م' 1, 'ك' 1, 'ط' 1;
 'ذ' 1, 'ء' 1, 'ؤ' 1, 'ر' 1, 'ى' 1, 'ة' 1, 'و' 1, 'ز' 1, 'ظ' 1, 'د' 1, '\b' 1;
-symbols 1, settings 1, '؟' 1, '\t' 1, ' ' 3, '؛' 1, '،' 1, '.' 1, '\n' 1;
+symbols 1, settings 1, 'ئ' 1, '\t' 1, ' ' 3, '؛' 1, '،' 1, '.' 1, '\n' 1;
 }
 landscape 0.35{
 0xFDFA 1, 'أ' 1, 'آ' 1, 'إ' 1, 0x64E 1, 0x64F 1, 0x650 1, 0x64B 1, 0x64C 1, 0x64D 1, 0x651 1, 0x652 1, '؛' 1, '٪' 1, 0xFD3E 1, 0xFD3F 1;
@@ -155,7 +155,7 @@ unicode 1, copy 1, paste 1, caps 1, ctrl 1, home 1, end 1, pgup 1, pgdn 1, 127 1
 'й' 1, 'ц' 1, 'у' 1, 'к' 1, 'е' 1, 'н' 1, 'г' 1, 'ш' 1, 'щ' 1, 'з' 1, 'х' 1;
 'ф' 1, 'ы' 1, 'в' 1, 'а' 1, 'п' 1, 'р' 1, 'о' 1, 'л' 1, 'д' 1, 'ж' 1, 'э' 1;
 shift 1, 'я' 1, 'ч' 1, 'с' 1, 'м' 1, 'и' 1, 'т' 1, 'ь' 1, 'б' 1, 'ю' 1, '\b' 1;
-symbols 1, settings 1, 'ё' 1, '\t' 1, ' ' 3, 'ъ' 1, '.' 1, '\n' 1;
+symbols 1, settings 1, 'ё' 1, '\t' 1, ' ' 3, 'ъ' 1, ',' 1, '.' 1, '\n' 1;
 }
 landscape 0.3{
 unicode 1,				'й' 1, 'ц' 1, 'у' 1, 'к' 1, 'е' 1, 'ё' 1, 'н' 1,	nab 1, home 1, end 1,	'7' 1, '8' 1, '9' 1, '0' 1,				'г' 1, 'ш' 1, 'щ' 1, 'з' 1, 'х' 1, 'ъ' 1;

@@ -241,20 +241,6 @@ int			find_layout_idx(LayoutType type, ArrayHandle lang)
 	}
 	return -1;
 }
-#if 0
-ArrayHandle	get_rows(int layoutIdx)
-{
-	Layout const *layout=(Layout const*)array_at(&glob->ctx.layouts, layoutIdx);
-	ArrayHandle rows;
-	if(glob->w<glob->h)//portrait
-		rows=layout->portrait;
-	else
-		rows=layout->landscape;
-	if(!rows)
-		LOG_ERROR("Rows pointer == nullptr");
-	return rows;
-}
-#endif
 const char*	layoutType2str(Layout const *layout)//for debug
 {
 	switch(layout->type)
@@ -492,7 +478,11 @@ EXTERN_C JNIEXPORT jintArray JNICALL Java_com_example_customkb_CKBnativelib_getL
 		else
 			originalRowCount=(int)layout->landscape->count, extensionRowCount=(int)glob->ctx.symbolsExtension.landscape->count;
 		if(originalRowCount)
-			layoutHeight=layoutHeight*(extensionRowCount+originalRowCount)/originalRowCount;
+			//layoutHeight=layoutHeight*((originalRowCount+extensionRowCount)<<3)/((originalRowCount<<3)+extensionRowCount);
+			layoutHeight=layoutHeight*(originalRowCount+extensionRowCount)/originalRowCount;//X  keyboard is too tall
+		else
+			LOG_ERROR("Row count = 0");
+		//LOG_ERROR("h0=%dpx, he=%dpx, h=%dpx", layoutHeight);//FIXME DEBUG
 	}
 #ifdef DEBUG_ARRAY
 	LOG_ERROR("[0]nRows=%d, [1]height=%d, [%d]arrCount=%d", nRowsTotal, layoutHeight, 2+nRowsTotal, arrCount);
