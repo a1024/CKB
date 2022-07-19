@@ -295,6 +295,9 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 					break;
 				}
 				success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SHIFT_LEFT));
+
+				//success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MENU));//breaks selection?
+				//success&=inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MENU));
 			/*	switch(key)
 				{
 				case CKBview3.SK_LEFT:
@@ -364,8 +367,13 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 			switch(key)
 			{
 			case '\n':
-				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER));
-				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER));
+				if(myView.mode==CKBview3.MODE_TEXT)//fix for facebook messenger: insert newline instead of sending the message
+					inCon.commitText("\n", 1);
+				else//all other modes don't support newlines
+				{
+					inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER));
+					inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER));
+				}
 				break;
 			case '\b':
 				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL));
@@ -383,21 +391,27 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 				myView.isActive_shift=!myView.isActive_shift;
 				break;
 			case CKBview3.MODMASK|CKBview3.KEY_SHIFT:
-				//nothing to do here
+				if(flags!=3)		//does nothing
+				{
+					if((flags&1)!=0)
+						inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_CAPS_LOCK));
+					if((flags&2)!=0)
+						inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_CAPS_LOCK));
+				}
 				break;
 			case CKBview3.MODMASK|CKBview3.KEY_CTRL:
 				myView.isActive_ctrl=!myView.isActive_ctrl;
-				//if(myView.isActive_ctrl)//does nothing
-				//	inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_CTRL_LEFT));
-				//else
-				//	inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_CTRL_LEFT));
+				if(myView.isActive_ctrl)		//does nothing
+					inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_CTRL_LEFT));
+				else
+					inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_CTRL_LEFT));
 				break;
 			case CKBview3.MODMASK|CKBview3.KEY_ALT:
 				myView.isActive_alt=!myView.isActive_alt;
-				//if(myView.isActive_alt)//does nothing
-				//	inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_LEFT));
-				//else
-				//	inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_LEFT));
+				if(myView.isActive_alt)		//does nothing
+					inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_LEFT));
+				else
+					inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_LEFT));
 				break;
 			case CKBview3.MODMASK|CKBview3.KEY_HOME:
 				if(myView.isActive_ctrl)//ctrl home
@@ -594,6 +608,10 @@ public class CKBservice extends InputMethodService//implements KeyboardView.OnKe
 				}
 				else
 					sendAsIs(key, inCon);
+				break;
+			case CKBview3.MODMASK|CKBview3.KEY_MENU:
+				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MENU));
+				inCon.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MENU));
 				break;
 			default:
 				sendAsIs(key, inCon);

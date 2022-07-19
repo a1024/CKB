@@ -66,6 +66,17 @@ public class TouchInfo
 		}
 		return null;
 	}
+	public void removeUpPointers()
+	{
+		for(int k=0;k<pointers.size();)//update pointers & remove invalid pointers
+		{
+			Pointer ti=pointers.get(k);
+			if(ti.state==TouchInfo.S_UP||ti.state==TouchInfo.S_CANCEL)//was marked as UP before: remove
+				pointers.remove(k);
+			else
+				++k;
+		}
+	}
 	public void update(MotionEvent _e)
 	{
 		e=_e;

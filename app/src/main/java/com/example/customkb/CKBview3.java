@@ -332,7 +332,7 @@ public class CKBview3 extends ViewGroup
 	boolean layoutHasExtension=false;//symbols extension		should be on at the start in case mode == MODE_PASSWORD, MODE_URL, or MODE_EMAIL
 	int tap_x=-1, tap_y=-1;//layout coordinates of currently held button
 	int ccGridX, ccGridY;
-	int quickMode=0;
+	int quickMode=0;//if true, shift will be reset on next key press
 	public boolean
 		isActive_shift=false,	//maintained by CKBview3
 		isActive_ctrl=false,	//maintained by CKBservice
@@ -351,7 +351,21 @@ public class CKBview3 extends ViewGroup
 	{
 		public int code;
 		TurboTask(int _code){code=_code;}
-		@Override public void run(){service.onKeyCallback(code, 3);}//this is run every time turbo is triggered
+		@Override public void run()
+		{
+			touchInfo.removeUpPointers();
+
+			//touchInfo.log(TAG);//FIXME DEBUG
+			//addError(String.format(loc, "TURBO: %d pointer(s)", touchInfo.size()));
+
+			if(touchInfo.size()==0)
+			{
+				timerOn=0;
+				timer.cancel();
+			}
+			else
+				service.onKeyCallback(code, 3);
+		}//this is run every time turbo is triggered
 	}
 	class LongPressTask extends TimerTask
 	{
@@ -1421,10 +1435,7 @@ public class CKBview3 extends ViewGroup
 		}
 		return true;
 	}
-	boolean isLongPressableKey(int code)
-	{
-		return code==(MODMASK|KEY_SHIFT);//only shift has long press action
-	}
+	boolean isLongPressableKey(int code){return code==(MODMASK|KEY_SHIFT);}//only shift has long press action
 
 	//cursor control
 	void exitCursorControl()
@@ -1587,12 +1598,14 @@ public class CKBview3 extends ViewGroup
 		{
 			if(isTurboKey(button.code))
 			{
+				//addError(String.format(loc, "set_possible_timers(): if(!%d) setting turbo timer", timerOn));//DEBUG
 				if(timerOn==0)
 				{
 					timerOn=1; touchId_timer=pointer.id;
 					turboTask=new TurboTask(button.code);
 					timer=new Timer();
 					timer.schedule(turboTask, turboStart_ms, turbo_ms);
+					//addError(String.format(loc, "scheduled a turbo timer after %dms period %dms", turboStart_ms, turbo_ms));//DEBUG
 				}
 			}
 			else if(isLongPressableKey(button.code))
@@ -1934,7 +1947,7 @@ public class CKBview3 extends ViewGroup
 							case '\b':
 								service.onKeyCallback(bIdx.code, 3);
 								break;
-							case MODMASK|KEY_SHIFT:
+							case MODMASK|KEY_SHIFT://toggle shift
 								isHeld_shift=true; touchId_shift=ti.id;
 								if(isActive_shift)
 								{
@@ -1956,22 +1969,23 @@ public class CKBview3 extends ViewGroup
 						break;
 					case TouchInfo.S_MOVED://normal keyboard
 						//tap_x=bIdx.kx; tap_y=bIdx.ky;
-						if(bIdx0.code==' '&&(Math.abs(ti.x-ti.startx)>20||Math.abs(ti.y-ti.starty)>20))
+						if(Math.abs(ti.x-ti.startx)>35||Math.abs(ti.y-ti.starty)>35)//pointer moved far enough (outside a 50x50 square)
 						{
-							cursor_control=CC_LANG;
-							touchId_switchLang=ti.id;
-							tap_x=-1; tap_y=-1;
-							hideKeyPreview();
-							if(timerOn!=0)
+							if(bIdx0.code==' ')
 							{
-								timerOn=0;
-								timer.cancel();
+								cursor_control=CC_LANG;
+								touchId_switchLang=ti.id;
+								tap_x=-1; tap_y=-1;
+								hideKeyPreview();
+								if(timerOn!=0)
+								{
+									timerOn=0;
+									timer.cancel();
+								}
 							}
-						}
-						else if(bIdx.ky!=bIdx0.ky||bIdx.kx!=bIdx0.kx)//turn on cursor control
-						{
-							tap_x=-1; tap_y=-1;
+							else//turn on cursor control
 							{
+								tap_x=-1; tap_y=-1;
 								if(isHeld_shift&&ti.id!=touchId_shift)
 								{
 									cursor_control=CC_SEL_END;
@@ -1985,11 +1999,12 @@ public class CKBview3 extends ViewGroup
 								//ccX1=(int)(ti.x/ccGridX);
 								//ccY1=(int)(ti.y/ccGridY);
 								showKeyPreview(bIdx, "Cursor\nControl");
-							}
-							if(timerOn!=0)
-							{
-								timerOn=0;
-								timer.cancel();
+								if(timerOn!=0)
+								{
+									timerOn=0;
+									timer.cancel();
+								}
+								quickMode=0;
 							}
 						}
 						break;
@@ -2004,7 +2019,7 @@ public class CKBview3 extends ViewGroup
 						if(np==1&&cursor_control!=CC_DISABLED)//
 							exitCursorControl();//
 						hideKeyPreview();
-						if(bIdx.code!=-1&&bIdx0.ky!=-1&&bIdx0.kx!=-1&&bIdx.ky==bIdx0.ky&&bIdx.kx==bIdx0.kx)
+						if(bIdx.code!=-1&&bIdx0.ky!=-1&&bIdx0.kx!=-1&&bIdx.ky==bIdx0.ky&&bIdx.kx==bIdx0.kx)//emit code on UP
 						{
 							boolean handled=false;
 							switch(timerOn)
